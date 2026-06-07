@@ -30,9 +30,10 @@ namespace gsheet2json {
     : baseName;
   reportProgress(sessionId, 6, `Creating tab "${tabName}"\u2026`);
   const sheet = ss.insertSheet(tabName);
+  // Roll back the new tab if any step below fails, so a failed import leaves no orphan sheet.
+  try {
   const { styles, validations: dvs, cells, columnWidths, rowHeights } = data;
   if (!cells || typeof cells !== "object" || Array.isArray(cells) || Object.keys(cells).length === 0) {
-    ss.deleteSheet(sheet);
     throw new Error(
       "No cell data in JSON. Large files may be truncated when pasted (Apps Script limits dialog payload size). Use the Drive dropdown and click a file to import it directly."
     );
@@ -41,7 +42,6 @@ namespace gsheet2json {
   const numRows = rowHeights ? Object.keys(rowHeights).length : 0;
   const numCols = columnWidths ? Object.keys(columnWidths).length : 0;
   if (numRows === 0 || numCols === 0) {
-    ss.deleteSheet(sheet);
     throw new Error("JSON has no rowHeights or columnWidths; cannot determine sheet size.");
   }
 
@@ -278,6 +278,10 @@ namespace gsheet2json {
   reportProgress(sessionId, 100, "Done");
   sheet.activate();
   return tabName;
+  } catch (importErr) {
+    try { ss.deleteSheet(sheet); } catch (_) { /* sheet already removed */ }
+    throw importErr;
+  }
     }
 
     /** Server-side import entry point. Accepts optional sessionId for progress. */

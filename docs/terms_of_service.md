@@ -1,7 +1,7 @@
 # Terms of Service
 
 **Effective date:** 2026-04-15
-**Last updated:** 2026-04-15
+**Last updated:** 2026-06-07
 **Add-on:** gsheet2json (Google Workspace Marketplace)
 
 ## Acceptance
@@ -14,25 +14,9 @@ gsheet2json is a Google Sheets add-on that exports spreadsheet data to JSON and 
 
 ## Licensing and Pricing
 
-### Free Trial
+gsheet2json is currently free to use, with all features available at no charge.
 
-New users receive a 7-day free trial with access to all features. The trial begins when the add-on is first installed.
-
-### Paid Plans
-
-After the trial, continued use requires a paid license purchased through the Google Workspace Marketplace:
-
-* **Monthly:** $3/mo per user
-* **Annual:** $25/yr per user
-* **Lifetime:** $50 one-time per user
-
-### Payment and Billing
-
-All payments are processed by Google through the Google Workspace Marketplace. Refunds, cancellations, and billing disputes are handled by Google per their Marketplace policies. The add-on developer does not process payments directly.
-
-### Feature Gating
-
-When a trial expires and no paid license is active, core export and import features are disabled. The sidebar remains accessible so users can view their settings and upgrade.
+If paid plans are introduced in the future, they will be offered through the Google Workspace Marketplace, billing will be handled by Google under their Marketplace policies, and these terms will be updated with a new "Last updated" date before any charges take effect.
 
 ## Intellectual Property
 
@@ -45,7 +29,7 @@ You retain full ownership of your spreadsheet data and any JSON files the add-on
 You agree not to:
 
 * Reverse-engineer, decompile, or extract the add-on's source code beyond what is permitted by applicable law
-* Circumvent licensing, trial limitations, or feature gating
+* Circumvent any licensing or access controls
 * Use the add-on in a way that violates Google's [Workspace Marketplace Developer Agreement](<https://workspace.google.com/terms/marketplace/developer-agreement/>)
 * Redistribute the add-on outside of the Google Workspace Marketplace
 

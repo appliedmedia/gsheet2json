@@ -1,10 +1,15 @@
 /**
- * Pure logic for stylesheet keys, value keys, and label resolution.
- * Used by tests (Node) and kept in sync with gsheet2json.ts (Apps Script).
+ * Pure logic for stylesheet keys, value keys, and value resolution.
+ * Test-only importable mirror of the production helpers in src/utils.ts
+ * (ValueUtils) and the schema in src/types.ts. It exists as a module because
+ * the production code runs in Apps Script global scope and has no exports;
+ * keep these definitions in sync with utils.ts / types.ts.
  */
 
 export interface StyleEntry {
+  base?: string;
   bg?: string;
+  fontColor?: string;
   fontWeight?: string;
   fontSize?: number;
   fontFamily?: string;
@@ -12,7 +17,7 @@ export interface StyleEntry {
   horizontalAlignment?: string;
   verticalAlignment?: string;
   numberFormat?: string;
-  wrap?: boolean;
+  wrapStrategy?: string;
 }
 
 export function styleKey(entry: StyleEntry): string {
@@ -26,13 +31,13 @@ export function valueKey(v: unknown): string {
 }
 
 export function resolveValue(
-  v: string | number | boolean | null,
-  labels: Record<string, string | number | boolean>
-): string | number | boolean | null {
+  v: string | number | boolean | null | undefined,
+  cellType?: string
+): string | number | boolean | Date | null {
   if (v === null || v === undefined) return null;
-  if (typeof v === "string" && v.startsWith("=")) {
-    const lid = v.slice(1);
-    return lid in labels ? labels[lid] : v;
+  if (cellType === "d" && typeof v === "string") {
+    const d = new Date(v);
+    if (!isNaN(d.getTime())) return d;
   }
   return v;
 }

@@ -15,10 +15,8 @@ Feature: As a developer with not a lot of time, I want a suite of single-line te
     And styleKey({"bg":"#fff"}) is '{"bg":"#fff"}'
     And styleKey({"bg":"#fff","fontWeight":"bold"}) is '{"bg":"#fff","fontWeight":"bold"}'
     And styleKey({"fontSize":10}) is '{"fontSize":10}'
-    And resolveValue("hello", {}) is "hello"
-    And resolveValue(42, {}) is 42
-    And resolveValue(null, {}) is null
-    And resolveValue(undefined, {}) is null
-    And resolveValue("=label_0", {"label_0":"repeated"}) is "repeated"
-    And resolveValue("=label_1", {"label_1":99}) is 99
-    And resolveValue("=label_missing", {}) is "=label_missing"
+    And resolveValue("hello") is "hello"
+    And resolveValue(42) is 42
+    And resolveValue(null) is null
+    And resolveValue(undefined) is null
+    And resolveValue("plain text", "s") is "plain text"

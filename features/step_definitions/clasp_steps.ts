@@ -1,14 +1,13 @@
 import { Given, When, Then } from '@cucumber/cucumber';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import assert from 'node:assert/strict';
 import type { TestWorld, GasResult } from '../support/world.js';
 
 function runClasp(fnName: string, params: unknown[]): GasResult {
   const paramJson = JSON.stringify(params);
-  const cmd = `npx clasp run ${fnName} --params '${paramJson}'`;
   let stdout = '';
   try {
-    stdout = execSync(cmd, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    stdout = execFileSync('npx', ['clasp', 'run', fnName, '--params', paramJson], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
   } catch (e) {
     const err = e as { stderr?: string; stdout?: string; message: string };
     throw new Error(
