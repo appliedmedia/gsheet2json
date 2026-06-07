@@ -2,6 +2,8 @@
 
 ![CI](images/ci.svg) ![Coverage](images/coverage.svg) ![License](images/license.svg)
 
+![gsheet2json sidebar open on a Google Sheet](images/g2j_hero.png)
+
 Round-trip a Google Sheets tab to structured JSON and back, preserving values, formatting, formulas, data validations, dimensions, named ranges, and merged cells. Built for AI workflows: hand a tab to an LLM as JSON, let it edit, then import the result as a new tab with the formatting intact.
 
 ## Install
