@@ -1,0 +1,978 @@
+<style>
+  /* ==========================================================================
+     Sidebar layout (page-specific)
+     ========================================================================== */
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    height: calc(100% - 8px);
+    max-width: 320px;
+    margin: 0 auto;
+    background: var(--md-sys-color-surface);
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+  }
+
+  /* Brand accent strip at the top edge */
+  .accent-strip {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg,
+      var(--md-sys-color-primary) 0%, #4C8BF5 50%, var(--md-sys-color-primary) 100%);
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  /* ── Status strip (visible only during an active operation) ────────── */
+  .status-strip {
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+    padding: 8px 12px 6px 12px;
+    background: var(--md-sys-color-surface-container-low);
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+    flex-shrink: 0;
+    min-height: 38px;
+    transition: opacity 120ms var(--md-sys-motion-easing-standard);
+  }
+  .status-strip.visible {
+    visibility: visible;
+    opacity: 1;
+    animation: dropdown-in 160ms var(--md-sys-motion-easing-standard);
+  }
+  .status-track {
+    position: relative;
+    height: 4px;
+    background: var(--md-sys-color-surface-container-high);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .status-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    background: var(--md-sys-color-primary);
+    transition: width 120ms linear;
+    border-radius: 2px;
+  }
+  .status-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 5px;
+    font: var(--md-sys-typescale-label-small);
+    color: var(--md-sys-color-on-surface-variant);
+    gap: 8px;
+  }
+  .status-message {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .status-percent {
+    flex: 0 0 auto;
+    font-variant-numeric: tabular-nums;
+    color: var(--md-sys-color-primary);
+  }
+
+  /* ── Tile row: 2 cards (Import, Export), each holds two icon buttons
+        (folder = local file, cloud = Google Drive) ─────────────────── */
+  .tile-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    padding: 8px 10px 6px 10px;
+    flex-shrink: 0;
+  }
+  .tile-card {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 6px 6px 6px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-sm);
+    background: var(--md-sys-color-surface-container-lowest);
+  }
+  /* Big translucent watermark icon spanning the whole card. */
+  .tile-corner-icon {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    fill: var(--md-sys-color-primary);
+    opacity: 0.10;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .tile-heading {
+    position: relative;
+    z-index: 1;
+    margin-top: 2px;
+    font: 600 10px/1.1 var(--md-font);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--md-sys-color-on-surface-variant);
+    user-select: none;
+  }
+  .tile-icon-row {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+  }
+  .tile-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--md-sys-shape-corner-xs);
+    background: transparent;
+    color: var(--md-sys-color-primary);
+    cursor: pointer;
+    box-shadow: 0 0 0 rgba(11, 87, 208, 0);
+    transition:
+      background-color var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-standard),
+      border-color var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-standard),
+      color var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-standard),
+      box-shadow 120ms var(--md-sys-motion-easing-standard),
+      transform 80ms var(--md-sys-motion-easing-standard);
+  }
+  .tile-icon-btn:not(:disabled):hover {
+    background: var(--md-sys-color-primary-container);
+    border-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary-container);
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6px rgba(11, 87, 208, 0.18);
+  }
+  .tile-icon-btn:not(:disabled):active {
+    transform: translateY(1px) scale(0.98);
+    box-shadow: 0 0 0 rgba(11, 87, 208, 0);
+  }
+  .tile-icon-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .tile-icon-btn:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+  .tile-icon-btn.active {
+    background: var(--md-sys-color-primary-container);
+    border-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary-container);
+  }
+  .tile-icon-btn svg {
+    width: 32px;
+    height: 32px;
+    fill: currentColor;
+  }
+  .tile-gloss::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -120%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(
+      100deg,
+      rgba(11,87,208,0) 0%,
+      rgba(11,87,208,0.18) 50%,
+      rgba(11,87,208,0) 100%);
+    transform: skewX(-20deg);
+    pointer-events: none;
+    z-index: 2;
+  }
+  .tile-gloss.gloss-run::before {
+    animation: btn-gloss-sweep 1100ms var(--md-sys-motion-easing-standard) forwards;
+  }
+  .tile-gloss:hover::before {
+    animation: btn-gloss-sweep 650ms var(--md-sys-motion-easing-standard) forwards;
+  }
+
+  /* ── Drive picker (inline, visible only when active) ──────────────── */
+  .picker {
+    display: none;
+    flex-direction: column;
+    border-top: 1px solid var(--md-sys-color-outline-variant);
+    /* Bottom edge doubles as a resize handle into the staging area. */
+    border-bottom: 3px double var(--md-sys-color-outline-variant);
+    background: var(--md-sys-color-surface-container-lowest);
+    height: 240px;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .picker.visible {
+    display: flex;
+    animation: dropdown-in 160ms var(--md-sys-motion-easing-standard);
+  }
+  .picker.resize-hot { cursor: row-resize; }
+  .picker.dragging { user-select: none; }
+  .picker-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 2px 4px 2px 10px;
+  }
+  .picker-head .icon-btn.small {
+    width: 22px;
+    height: 22px;
+  }
+  .picker-head .icon-btn.small svg {
+    width: 14px;
+    height: 14px;
+  }
+  .picker-title {
+    font: var(--md-sys-typescale-label-small);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--md-sys-color-on-surface-variant);
+  }
+  .picker-filter {
+    padding: 4px 10px 6px 10px;
+    min-height: 0;
+    overflow: hidden;
+    /* flex-shrink: 0 by default keeps the input at its natural height; the
+       hidden-list extreme-grow path explicitly sets `display: none` here when
+       it needs to claim the space, so we don't need a shrink-to-zero behavior
+       in the normal flex layout. Letting it shrink let picker-list draw over
+       the bottom of the input when the picker had a tight height. */
+    flex-shrink: 0;
+  }
+  .picker-filter input {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-sm);
+    padding: 5px 8px;
+    font: var(--md-sys-typescale-body-small);
+    background: var(--md-sys-color-surface-container-lowest);
+    color: var(--md-sys-color-on-surface);
+    outline: none;
+  }
+  .picker-filter input:focus { border-color: var(--md-sys-color-primary); }
+  .picker-list {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 2px 0;
+    /* Flex column so a lone .picker-msg can use `margin: auto` to center
+       itself in the unused space; file rows just stack at the top as before
+       since the default justify-content is flex-start. */
+    display: flex;
+    flex-direction: column;
+  }
+  .picker-msg {
+    margin: auto;
+    padding: 14px;
+    text-align: center;
+    font: var(--md-sys-typescale-body-small);
+    color: var(--md-sys-color-on-surface-variant);
+  }
+  .picker-msg.loading {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font: var(--md-sys-typescale-label-small);
+  }
+  .picker-row {
+    display: flex;
+    align-items: center;
+    padding: 7px 8px 7px 12px;
+    gap: 4px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--md-sys-color-surface-container);
+  }
+  .picker-row:hover { background: var(--md-sys-color-surface-container-low); }
+  .picker-row .pr-name-wrap { flex: 1 1 auto; min-width: 0; }
+  .picker-row .pr-name {
+    font: var(--md-sys-typescale-body-small);
+    color: var(--md-sys-color-on-surface);
+    word-break: break-all;
+  }
+  .picker-row .pr-folder {
+    font: var(--md-sys-typescale-label-small);
+    color: var(--md-sys-color-outline);
+    margin-top: 1px;
+    word-break: break-all;
+  }
+  .picker-row .pr-actions { position: relative; flex: 0 0 auto; }
+
+  /* Per-row kebab menu — tag chooser: Hide: [file] [folder] [all] [Done] */
+  .pr-menu {
+    display: none;
+    position: absolute;
+    top: 24px;
+    right: 0;
+    padding: 6px 8px;
+    background: var(--md-sys-color-surface-container-lowest);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-sm);
+    box-shadow: var(--md-sys-elevation-3);
+    z-index: 170;
+    white-space: nowrap;
+  }
+  .pr-menu.open {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pr-menu-prefix {
+    font: var(--md-sys-typescale-label-small);
+    color: var(--md-sys-color-on-surface-variant);
+  }
+  .pr-tag {
+    display: inline-flex;
+    align-items: center;
+    background: transparent;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 999px;
+    padding: 2px 9px;
+    font: var(--md-sys-typescale-label-small);
+    color: var(--md-sys-color-on-surface);
+    cursor: pointer;
+    user-select: none;
+  }
+  .pr-tag:hover { background: var(--md-sys-color-surface-container); }
+  .pr-tag.selected {
+    background: var(--md-sys-color-primary-container);
+    border-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary-container);
+  }
+  .pr-tag-done {
+    background: var(--md-sys-color-primary);
+    border-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+  }
+  .pr-tag-done:hover {
+    background: #0A4DBA;
+    border-color: #0A4DBA;
+    color: var(--md-sys-color-on-primary);
+  }
+
+  /* Hidden-items footer inside the picker.
+     Flex column with [hidden-list, toggle] so the toggle stays anchored at the
+     bottom and the list grows upward when expanded. */
+  .picker-foot {
+    border-top: 1px solid var(--md-sys-color-surface-container);
+    background: var(--md-sys-color-surface-container-low);
+    padding: 4px 12px 6px 12px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  /* When the hidden-list is open, the foot's top edge becomes a drag handle —
+     pulling it up grows the hidden-list (taking space from the picker-list
+     above) without shrinking the overall picker. */
+  .picker-foot.expanded {
+    border-top: 3px double var(--md-sys-color-outline-variant);
+  }
+  .picker-foot.expanded.resize-hot { cursor: row-resize; }
+  .picker-foot.expanded.dragging { user-select: none; }
+  .picker-foot button {
+    background: transparent;
+    border: none;
+    padding: 2px 0;
+    font: var(--md-sys-typescale-label-small);
+    color: var(--md-sys-color-primary);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .picker-foot button[hidden] { display: none; }
+  .picker-foot .hidden-toggle-arrow {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    fill: currentColor;
+    transition: transform 120ms var(--md-sys-motion-easing-standard);
+  }
+  .picker-foot button.expanded .hidden-toggle-arrow {
+    transform: rotate(90deg);
+  }
+  .picker-foot .hidden-list {
+    display: none;
+    margin-bottom: 4px;
+    padding-bottom: 4px;
+    border-bottom: 1px dashed var(--md-sys-color-outline-variant);
+    overflow-y: auto;
+  }
+  .picker-foot .hidden-list.visible {
+    display: block;
+    /* Default height; can be overridden inline by the drag handler. */
+    height: 96px;
+  }
+  .picker-foot .hidden-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 0;
+    font: var(--md-sys-typescale-label-small);
+    color: var(--md-sys-color-on-surface-variant);
+  }
+  .picker-foot .hidden-row .hr-text {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .picker-foot .hidden-row a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--md-sys-color-outline-variant);
+    text-underline-offset: 2px;
+  }
+  .picker-foot .hidden-row a:hover { color: var(--md-sys-color-primary); }
+  .picker-foot .hidden-row .hr-kind {
+    margin-right: 6px;
+    font-variant: small-caps;
+    letter-spacing: 0.04em;
+  }
+  .picker-foot .hidden-row .hr-unhide {
+    background: transparent;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-xs);
+    padding: 1px 8px;
+    font: var(--md-sys-typescale-label-small);
+    color: var(--md-sys-color-primary);
+    cursor: pointer;
+    margin-left: 6px;
+    transition:
+      background-color 120ms var(--md-sys-motion-easing-standard),
+      border-color 120ms var(--md-sys-motion-easing-standard),
+      color 120ms var(--md-sys-motion-easing-standard),
+      transform 80ms var(--md-sys-motion-easing-standard),
+      box-shadow 120ms var(--md-sys-motion-easing-standard);
+  }
+  .picker-foot .hidden-row .hr-unhide:hover {
+    background: var(--md-sys-color-primary-container);
+    border-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary-container);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(11, 87, 208, 0.18);
+  }
+  .picker-foot .hidden-row .hr-unhide:active {
+    transform: translateY(1px) scale(0.98);
+    box-shadow: 0 0 0 rgba(11, 87, 208, 0);
+  }
+  .picker-foot .hidden-row .hr-unhide:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 1px;
+  }
+
+  /* ── Staging area: textarea + JSON validation + Import button ─────── */
+  .staging {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 12px 10px 12px;
+    background: var(--md-sys-color-surface-container-low);
+    border-top: 1px solid var(--md-sys-color-outline-variant);
+    border-bottom: 3px double var(--md-sys-color-outline-variant);
+    flex: 0 0 auto;
+    /* Floor: enough for 3 lines of textarea + chrome (head, bar, padding). */
+    min-height: 110px;
+    height: 220px;
+    position: relative;
+  }
+  .staging.resize-hot,
+  .activity.resize-hot .activity-header {
+    cursor: row-resize;
+  }
+  .staging.dragging,
+  .activity.dragging {
+    user-select: none;
+  }
+  .staging-editor {
+    display: flex;
+    align-items: stretch;
+    flex: 1 1 auto;
+    /* 3 lines × 14.5px line-height + 12px padding + 2px borders ≈ 58px. */
+    min-height: 58px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-sm);
+    background: var(--md-sys-color-surface-container-lowest);
+    overflow: hidden;
+    position: relative;
+  }
+  .staging-editor:focus-within {
+    border-color: var(--md-sys-color-primary);
+  }
+  .staging-gutter {
+    flex: 0 0 auto;
+    width: calc(1ch + 14px);
+    padding: 6px 6px 6px 4px;
+    box-sizing: content-box;
+    border-right: 1px solid var(--md-sys-color-outline-variant);
+    background: var(--md-sys-color-surface-container-low);
+    color: var(--md-sys-color-on-surface-variant);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 10px;
+    line-height: 1.45;
+    text-align: right;
+    white-space: normal;
+    overflow: hidden;
+    user-select: none;
+    font-variant-numeric: tabular-nums;
+  }
+  .staging-gutter-line {
+    display: block;
+    line-height: inherit;
+  }
+  .staging-gutter-line.error {
+    color: goldenrod;
+    font-weight: 900;
+  }
+  /* Error marker sits centered on the seam between the gutter (line numbers)
+     and the textarea so the gutter doesn't have to reserve any width for it.
+     JS positions `top` per the error line and updates on scroll/resize.
+     The extra `-2px` on the Y nudges the glyph up to compensate for the
+     color emoji's optically low baseline within its em box — without it the
+     icon sits ~2px below the visual middle of the text row. */
+  .staging-error-marker {
+    position: absolute;
+    font-size: 11px;
+    line-height: 1;
+    pointer-events: none;
+    z-index: 5;
+    transform: translate(-50%, calc(-50% - 2px));
+  }
+  .staging-error-marker[hidden] { display: none; }
+  .staging-textarea {
+    width: 100%;
+    flex: 1 1 auto;
+    box-sizing: border-box;
+    min-height: 0;
+    height: 100%;
+    resize: none;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 10px;
+    line-height: 1.45;
+    padding: 6px 8px;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: var(--md-sys-color-on-surface);
+    outline: none;
+    overflow: auto;
+  }
+  .staging-textarea:focus { border-color: transparent; }
+  /* The native `placeholder=` attribute can't size individual glyphs, so the
+     placeholder is rendered as a separate absolute-positioned overlay aligned
+     to where the textarea's first character would land (gutter width + the
+     textarea's left padding). JS toggles `.hidden` based on textarea value. */
+  .staging-placeholder {
+    position: absolute;
+    top: 6px;
+    left: calc(2ch + 10px);
+    pointer-events: none;
+    /* Proportional system sans (was monospace, which read very different from
+       the rest of the sidebar's UI text). */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--md-sys-color-on-surface);
+    opacity: 0.55;
+  }
+  .staging-placeholder.hidden { display: none; }
+  /* Each line is its own flex row so `align-items: center` does the vertical
+     alignment between the body text and the 40px glyph for us — no manual
+     vertical-align math, no per-glyph translateY tweaks. The 40px glyph drives
+     the row height, and the body text centers against it automatically. */
+  .staging-placeholder .placeholder-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .staging-placeholder .placeholder-glyph {
+    font-size: 40px;
+    line-height: 1;
+  }
+  /* Per-glyph overrides — the up arrow is small but bold so it stands next to
+     the body text on line 1 with comparable visual weight; the play triangle
+     is bigger than body text but not so big it dominates the panel. */
+  .staging-placeholder .glyph-up   { font-size: 25px; font-weight: 900; }
+  /* The U+25B6 triangle's visual mass sits in the lower half of its em-box,
+     so `align-items: center` on the row centers the BOX (which puts the
+     triangle below the text middle, behaving like the tail of a `y`). Nudge
+     the glyph up 8px to align the triangle's visual center with the row. */
+  .staging-placeholder .glyph-play { font-size: 45px; transform: translateY(-4px); }
+  /* Pull line 2 up so it sits close to line 1 instead of being separated by
+     the empty vertical space the line-1 glyph's row height creates. */
+  .staging-placeholder .placeholder-line + .placeholder-line { margin-top: -12px; }
+  .staging-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    min-height: 24px;
+  }
+  .staging-status {
+    flex: 1 1 auto;
+    min-width: 0;
+    font: var(--md-sys-typescale-label-small);
+    color: var(--md-sys-color-on-surface-variant);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .staging-status.copyable {
+    cursor: pointer;
+  }
+  .staging-status.copyable:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .staging-status.valid    { color: var(--md-sys-color-success); }
+  .staging-status.invalid  { color: goldenrod; font-weight: 600; }
+  .staging-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .staging-btn {
+    background: transparent;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-xs);
+    padding: 3px 10px;
+    font: var(--md-sys-typescale-label-small);
+    color: var(--md-sys-color-on-surface);
+    cursor: pointer;
+    transition: background-color 120ms var(--md-sys-motion-easing-standard);
+  }
+  .staging-btn:not(:disabled):hover { background: var(--md-sys-color-surface-container); }
+  .staging-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .staging-btn.primary {
+    background: var(--md-sys-color-primary);
+    border-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+  }
+  .staging-btn.primary:not(:disabled):hover { background: #0A4DBA; }
+  .staging-btn.icon-only {
+    width: 26px;
+    height: 24px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    line-height: 1;
+  }
+  .staging-btn.icon-only svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+  }
+  /* Neutral (dark-grey) clear button — distinct from primary actions. */
+  #stagingClear.staging-btn {
+    color: #3c3c3c;
+  }
+  #stagingClear.staging-btn:not(:disabled):hover {
+    color: #000000;
+  }
+  /* Wastebasket emoji wants a touch more weight than the sibling glyphs.
+     The 2px padding-bottom shifts the centered glyph up 1px so it doesn't
+     kiss the button's bottom edge — the color emoji sits optically low in
+     its em box and was hugging the bottom border without this nudge. */
+  #stagingClear.staging-btn.icon-only {
+    font-size: 15px;
+    padding-bottom: 2px;
+  }
+
+  /* ── Activity feed (always visible, scrollable) ────────────────────── */
+  .activity {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border-top: none;
+  }
+  /* Post-import highlight: green inset border holds for ~2s then fades.
+     The animation is driven by the .flash-imported class, applied for 3s. */
+  @keyframes activity-flash-imported {
+    0%   { box-shadow: inset 0 0 0 3px var(--md-sys-color-success); }
+    70%  { box-shadow: inset 0 0 0 3px var(--md-sys-color-success); }
+    100% { box-shadow: inset 0 0 0 0 transparent; }
+  }
+  .activity.flash-imported {
+    animation: activity-flash-imported 3000ms ease-out;
+  }
+  .activity-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 12px;
+    background: var(--md-sys-color-surface-container-low);
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  }
+  .activity-title {
+    font: var(--md-sys-typescale-label-small);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--md-sys-color-on-surface-variant);
+  }
+  .activity-clear {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font: var(--md-sys-typescale-label-small);
+    color: #3c3c3c;
+    cursor: pointer;
+  }
+  .activity-clear[hidden] { display: none; }
+  .activity-clear.icon-only {
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-xs);
+    padding: 0;
+    font-size: 13px;
+    line-height: 1;
+  }
+  .activity-clear.icon-only:hover {
+    background: var(--md-sys-color-surface-container);
+    color: #000000;
+  }
+  .activity-list {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 4px 0;
+  }
+  .activity-empty {
+    padding: 16px;
+    text-align: center;
+    font: var(--md-sys-typescale-body-small);
+    color: var(--md-sys-color-on-surface-variant);
+  }
+  .activity-row {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--md-sys-color-surface-container);
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .activity-row:hover { background: var(--md-sys-color-surface-container-low); }
+  .activity-body { flex: 1 1 auto; min-width: 0; }
+  .activity-title-text {
+    font: var(--md-sys-typescale-body-small);
+    color: var(--md-sys-color-on-surface);
+    word-break: break-word;
+  }
+  .activity-row.error .activity-title-text {
+    color: var(--md-sys-color-error);
+  }
+  .activity-sub {
+    font: var(--md-sys-typescale-body-small);
+    color: var(--md-sys-color-on-surface-variant);
+    margin-top: 1px;
+    word-break: break-word;
+  }
+  .activity-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+  }
+  .activity-action-icon {
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-xs);
+    background: transparent;
+    color: var(--md-sys-color-primary);
+    cursor: pointer;
+    padding: 0;
+    transition: background-color 120ms var(--md-sys-motion-easing-standard);
+  }
+  .activity-action-icon:hover { background: var(--md-sys-color-surface-container); }
+  .activity-action-icon:disabled { opacity: 0.55; cursor: not-allowed; }
+  .activity-action-icon svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+  }
+  .activity-actions > button:not(.activity-action-icon) {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font: var(--md-sys-typescale-label-small);
+    color: var(--md-sys-color-primary);
+    cursor: pointer;
+  }
+  .activity-time {
+    flex: 0 0 auto;
+    font: var(--md-sys-typescale-label-small);
+    color: var(--md-sys-color-outline);
+    white-space: nowrap;
+    margin-top: 2px;
+    /* Plain arrow over the time so users don't get the I-beam (which reads
+       as "select me"). CSS has no stopwatch cursor and the project prefers
+       not to wrap glyphs in SVG just to fake one. */
+    cursor: default;
+  }
+
+  /* ── Footer: gear + (trial-only) license text ─────────────────────── */
+  .footer-bar {
+    border-top: 1px solid var(--md-sys-color-outline-variant);
+    padding: 2px 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    background: var(--md-sys-color-surface-container-low);
+    position: relative;
+    font: var(--md-sys-typescale-label-small);
+    color: var(--md-sys-color-on-surface-variant);
+  }
+  .footer-bar #gearBtn.icon-btn.small {
+    width: 29px;
+    height: 29px;
+  }
+  .footer-bar #gearBtn.icon-btn.small svg {
+    width: 19px;
+    height: 19px;
+  }
+  .footer-bar .license-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: right;
+    padding-right: 2px;
+  }
+  .footer-bar .license-text[hidden] { display: none; }
+  .footer-bar .expired { color: var(--md-sys-color-error); }
+
+  /* Overflow menu + overlay panels (gear) */
+  .overflow-menu {
+    display: none;
+    position: absolute;
+    bottom: 36px;
+    left: 8px;
+    min-width: 200px;
+    padding: 4px 0;
+    background: var(--md-sys-color-surface-container-lowest);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-sm);
+    box-shadow: var(--md-sys-elevation-3);
+    z-index: 150;
+  }
+  .overflow-menu.open {
+    display: block;
+    animation: menu-up-in 180ms var(--md-sys-motion-easing-standard);
+  }
+  @keyframes menu-up-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .overflow-menu .menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 8px 14px;
+    font: var(--md-sys-typescale-body-small);
+    color: var(--md-sys-color-on-surface);
+    cursor: pointer;
+  }
+  .overflow-menu .menu-item-icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    color: var(--md-sys-color-on-surface-variant);
+  }
+  .overflow-menu .menu-item:hover {
+    background: var(--md-sys-color-surface-container);
+  }
+  .overflow-menu .menu-divider {
+    height: 1px;
+    background: var(--md-sys-color-outline-variant);
+    margin: 4px 0;
+  }
+  .overflow-menu .menu-foot {
+    padding: 6px 14px 4px 14px;
+    font: var(--md-sys-typescale-label-small);
+    color: var(--md-sys-color-outline);
+    line-height: 1.4;
+  }
+  .overflow-menu .menu-foot .menu-license {
+    color: var(--md-sys-color-on-surface-variant);
+  }
+  .overflow-menu .menu-foot .expired { color: var(--md-sys-color-error); }
+
+  /* Onboarding overlay */
+  .onboarding {
+    position: absolute;
+    inset: 0;
+    background: var(--md-sys-color-surface);
+    z-index: 300;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    text-align: center;
+    gap: 10px;
+  }
+  .onboarding.hidden { display: none; }
+  .onboarding h2 {
+    font: var(--md-sys-typescale-title-medium);
+    color: var(--md-sys-color-on-surface);
+    margin: 0;
+  }
+  .onboarding p {
+    font: var(--md-sys-typescale-body-medium);
+    color: var(--md-sys-color-on-surface-variant);
+    margin: 0;
+  }
+  .onboarding .trial-note {
+    color: var(--md-sys-color-primary);
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+  /* Tooltip-style: pale-yellow box, dark text, 1px border. Matches what the
+     native `title=` tooltip looks like in the same row, so the click-to-copy
+     toast reads as a continuation of the same hover affordance. JS sets
+     left/top to the cursor position; the translate keeps the toast below the
+     cursor (top-aligned) like a native tooltip. */
+  .toast {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, 0);
+    padding: 3px 6px;
+    border: 1px solid #767676;
+    border-radius: 3px;
+    font: 11px/1.3 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: #ffffe1;
+    color: #1a1a1a;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 150ms var(--md-sys-motion-easing-standard);
+    z-index: 9999;
+    white-space: nowrap;
+  }
+  .toast.visible { opacity: 1; }
+</style>
