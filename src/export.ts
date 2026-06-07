@@ -230,7 +230,7 @@ namespace gsheet2json {
 
       const vk = valueKey(rawVal);
       const useLabel =
-        !isEmpty(rawVal) && (valueCount.get(vk) ?? 0) >= 2;
+        !isEmpty(rawVal) && !hasFormula && (valueCount.get(vk) ?? 0) >= 2;
       const cellV = rawVal as string | number | boolean | null;
 
       // Omit `s` when the cell's style is `s_base` — saves bytes on every

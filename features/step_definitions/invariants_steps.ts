@@ -50,7 +50,7 @@ function parseLiteral(s: string): unknown {
   if (t === 'undefined') return undefined;
   if (t === 'null') return null;
   if (t.length >= 2 && t.startsWith("'") && t.endsWith("'")) {
-    return t.slice(1, -1);
+    return t.slice(1, -1).replace(/\\(['\\])/g, '$1');
   }
   return JSON.parse(t);
 }

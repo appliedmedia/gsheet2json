@@ -248,19 +248,26 @@ namespace gsheet2json {
     }
   }
 
-  // Rewrite formulas in import cells that reference renamed labels.
+  // Rewrite renamed-label references inside import formulas. Handles both a
+  // whole-cell reference (=l_foo) and labels embedded in a larger formula
+  // (=l_foo + l_bar) by matching whole label tokens via word boundaries.
+  // Label ids are [a-z0-9_] slugs, so they are regex-safe; the only edge case
+  // not handled is a label-like token inside a formula string literal.
   if (labelRenames.size > 0) {
-    for (const id of Object.keys(cells)) {
-      const cell = cells[id];
-      if (!cell.f) continue;
-      const m = cell.f.match(/^=(.+)$/);
-      if (!m) continue;
-      const ref = m[1];
-      if (labelRenames.has(ref) && labelRenames.get(ref) !== ref) {
-        const newRef = labelRenames.get(ref)!;
-        cell.f = `=${newRef}`;
-        const rc = parseCellId(id);
-        if (rc) sheet.getRange(rc.r + 1, rc.c + 1).setFormula(`=${newRef}`);
+    const activeRenames = [...labelRenames.entries()].filter(([from, to]) => from !== to);
+    if (activeRenames.length > 0) {
+      for (const id of Object.keys(cells)) {
+        const cell = cells[id];
+        if (!cell.f) continue;
+        let next = cell.f;
+        for (const [from, to] of activeRenames) {
+          next = next.replace(new RegExp(`\\b${from}\\b`, "g"), to);
+        }
+        if (next !== cell.f) {
+          cell.f = next;
+          const rc = parseCellId(id);
+          if (rc) sheet.getRange(rc.r + 1, rc.c + 1).setFormula(next);
+        }
       }
     }
   }

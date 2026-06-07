@@ -259,9 +259,9 @@ namespace gsheet2json {
      * the round-trip through PropertiesService.
      */
     public static test_settings_toggles(): { pass: boolean; detail: string } {
+      const before = getSettings();
+      const sample = `__test_toggle_${Date.now()}__`;
       try {
-        const before = getSettings();
-        const sample = `__test_toggle_${Date.now()}__`;
         const next = [...before.ignoredDriveFileNames, sample];
         setSetting("ignoredDriveFileNames", next);
 
@@ -270,16 +270,17 @@ namespace gsheet2json {
           return { pass: false, detail: `Setting not persisted: ${sample} not in ignoredDriveFileNames` };
         }
 
-        // Cleanup
-        setSetting(
-          "ignoredDriveFileNames",
-          after.ignoredDriveFileNames.filter((n: string) => n !== sample),
-        );
-
         return { pass: true, detail: `Settings toggle persisted and reverted` };
       } catch (e) {
         const err = e instanceof Error ? e : new Error(String(e));
         return { pass: false, detail: `test_settings_toggles failed: ${err.message}` };
+      } finally {
+        // Always remove the sample, even if the assertion failed or threw.
+        const cur = getSettings();
+        setSetting(
+          "ignoredDriveFileNames",
+          cur.ignoredDriveFileNames.filter((n: string) => n !== sample),
+        );
       }
     }
   }

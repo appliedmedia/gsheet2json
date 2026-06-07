@@ -18,6 +18,7 @@
   var statusPercent  = document.getElementById('statusPercent');
 
   var progressTimer = null;
+  var progressGen = 0;
   var statusHideTimer = null;
   var statusVisibleAt = 0;
   var STATUS_MIN_VISIBLE_MS = 5000;
@@ -46,6 +47,7 @@
   }
   function stopProgressTimer() {
     if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
+    progressGen++;
   }
   /**
    * Start the status strip with a fake easeOutCubic fill. Used for local-only
@@ -80,9 +82,11 @@
     if (typeof autosizeStaging === 'function') autosizeStaging();
     stopProgressTimer();
     if (!sessionId) return;
+    const myGen = progressGen;
     progressTimer = setInterval(function() {
       google.script.run
         .withSuccessHandler(function(p) {
+          if (myGen !== progressGen) return;
           if (!p) return;
           if (typeof p.pct === 'number') setProgress(p.pct);
           if (p.msg) statusMessage.textContent = p.msg;
@@ -270,18 +274,18 @@
   function openDriveFile(e) {
     if (!e || !e.fileId) return;
     const fileUrl = e.openUrl || `https://drive.google.com/file/d/${e.fileId}/view`;
-    window.open(fileUrl, '_blank');
+    window.open(fileUrl, '_blank', 'noopener,noreferrer');
   }
   /** Open the parent folder of a Drive file in a new tab (activity action). */
   function showFileInDrive(e) {
     if (!e.fileId) return;
     google.script.run
       .withSuccessHandler(function(url) {
-        if (url) window.open(url, '_blank');
-        else if (e.openUrl) window.open(e.openUrl, '_blank');
+        if (url) window.open(url, '_blank', 'noopener,noreferrer');
+        else if (e.openUrl) window.open(e.openUrl, '_blank', 'noopener,noreferrer');
       })
       .withFailureHandler(function() {
-        if (e.openUrl) window.open(e.openUrl, '_blank');
+        if (e.openUrl) window.open(e.openUrl, '_blank', 'noopener,noreferrer');
       })
       .gsheet2json_handleCommand('getFileFolderUrl', { fileId: e.fileId });
   }

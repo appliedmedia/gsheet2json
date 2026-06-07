@@ -102,7 +102,7 @@ Click "Paste JSON" or equivalent input area.
 
 Paste a short valid JSON snippet (use this literal text — it represents a minimal round-trip payload):
 
-```
+```json
 [{"row":1,"values":["Name","Score","Active"]},{"row":2,"values":["Alice","92","true"]},{"row":3,"values":["Bob","87","false"]}]
 ```
 
@@ -155,7 +155,7 @@ Print the resulting YouTube URL.
 
 ## Pacing notes
 
-* Every network-bound action (Drive save, import, Drive load) gets a minimum 5-second wait before proceeding.
+* Every network-bound action (Drive save, import, Drive load) waits for the operation to complete, up to the per-step timeout noted above, before proceeding.
 * Every shot boundary pause is 2–3 seconds of "hold" to give the camera clean cut points.
 * If any step fails (sidebar does not open, export does not complete, import rows do not land): stop, print the failure, and do NOT continue. Do not attempt recovery — the recording will need a retake from Step 0.
 * Total target runtime: 78 seconds. Actual may vary 5–10 seconds due to network latency.

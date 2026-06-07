@@ -80,11 +80,9 @@ stop_recording() {
 duration_recording() {
   local duration=$1
 
-  ffmpeg -f avfoundation -framerate 30 -i "${DISPLAY_INDEX}" \
+  if ffmpeg -f avfoundation -framerate 30 -i "${DISPLAY_INDEX}" \
     -t "${duration}" -vcodec libx264 -crf 18 -preset ultrafast -pix_fmt yuv420p \
-    "${OUTPUT_FILE}" 2>/dev/null
-
-  if [[ $? -eq 0 ]]; then
+    "${OUTPUT_FILE}" 2>/dev/null; then
     echo "Recording completed (${duration}s)"
     exit 0
   else

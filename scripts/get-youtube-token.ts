@@ -5,6 +5,7 @@ import * as http from 'http';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import { randomBytes } from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,10 +34,12 @@ async function getYouTubeToken(): Promise<void> {
     'http://localhost:3000'
   );
 
-  // Generate auth URL
+  // Generate auth URL with a CSRF state token bound to this run.
+  const expectedState = randomBytes(16).toString('hex');
   const authUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: 'https://www.googleapis.com/auth/youtube.upload',
+    state: expectedState,
   });
 
   console.log('Open this URL in your browser to authorize:');
@@ -52,6 +55,13 @@ async function getYouTubeToken(): Promise<void> {
 
     const urlObj = new URL(req.url, 'http://localhost:3000');
     const code = urlObj.searchParams.get('code');
+    const state = urlObj.searchParams.get('state');
+
+    if (state !== expectedState) {
+      res.writeHead(403);
+      res.end('Invalid state');
+      return;
+    }
 
     if (!code) {
       res.writeHead(400);
@@ -81,7 +91,7 @@ async function getYouTubeToken(): Promise<void> {
     }
   });
 
-  server.listen(3000, () => {
+  server.listen(3000, '127.0.0.1', () => {
     console.log('Waiting for authorization...');
   });
 }

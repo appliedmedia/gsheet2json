@@ -81,7 +81,7 @@ Capture the printed `https://youtu.be/...` URL from stdout.
 
 Print:
 
-```
+```text
 Done. YouTube URL: <the URL from Step 6>
 ```
 

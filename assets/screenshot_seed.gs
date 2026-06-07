@@ -44,5 +44,5 @@ function screenshotSeed() {
 }
 
 function resetOnboarding() {
-  PropertiesService.getUserProperties().deleteAllProperties();
+  PropertiesService.getUserProperties().deleteProperty("gsheet2json_firstRunCompleted");
 }
