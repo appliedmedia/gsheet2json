@@ -1,4 +1,4 @@
-// scripts/get-youtube-token.ts Copyright (c) 2026:appliedmedia. All Rights Reserved. Do Not Distribute.
+// scripts/get-youtube-token.ts Copyright (c) 2026:appliedmedia. Licensed under Code Transparency v1 (see LICENSE).
 
 import { google } from 'googleapis';
 import * as http from 'http';

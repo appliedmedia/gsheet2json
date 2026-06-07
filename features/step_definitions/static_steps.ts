@@ -2,7 +2,6 @@ import { Given, When, Then } from '@cucumber/cucumber';
 import assert from 'node:assert/strict';
 import { readFileSync, statSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { parse as parseYaml } from 'yaml';
 import { TestWorld, ScanHit } from '../support/world.js';
 
 Given('the source tree at {string} is present', function (this: TestWorld, path: string) {
@@ -53,28 +52,10 @@ Then('{string} exists and is non-empty', function (path: string) {
   assert.ok(st.size > 0, `${path} is empty`);
 });
 
-Then('{string} exists and parses as YAML', function (path: string) {
-  const raw = readFileSync(path, 'utf8');
-  const parsed = parseYaml(raw);
-  assert.ok(parsed && typeof parsed === 'object', `${path} did not parse as a YAML object`);
-});
-
-Then('{string} lists {int} screenshots', function (path: string, expected: number) {
-  const raw = readFileSync(path, 'utf8');
-  const matches = raw.match(/^###\s+\d+\.\s+/gm) ?? [];
-  assert.strictEqual(matches.length, expected, `${path}: expected ${expected} screenshots, found ${matches.length}`);
-});
-
 Then('VERSION in {string} equals version in {string}', function (tsPath: string, jsonPath: string) {
   const tsVer = extractVersionConst(readFileSync(tsPath, 'utf8'));
   const jsonVer = JSON.parse(readFileSync(jsonPath, 'utf8')).version;
   assert.strictEqual(tsVer, jsonVer, `${tsPath} VERSION=${tsVer} vs ${jsonPath} version=${jsonVer}`);
-});
-
-Then('VERSION in {string} equals appVersion in {string}', function (tsPath: string, yamlPath: string) {
-  const tsVer = extractVersionConst(readFileSync(tsPath, 'utf8'));
-  const yamlVer = parseYaml(readFileSync(yamlPath, 'utf8')).appVersion;
-  assert.strictEqual(tsVer, yamlVer, `${tsPath} VERSION=${tsVer} vs ${yamlPath} appVersion=${yamlVer}`);
 });
 
 Then('appsscript.json has key {string}', function (dottedKey: string) {

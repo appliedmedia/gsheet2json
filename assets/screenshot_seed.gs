@@ -3,9 +3,8 @@
  *
  * NOT shipped: not included in tsconfig.json's `files`, not copied by the
  * build script, not pushed by clasp. Paste this file into the Apps Script
- * editor temporarily, run screenshotSeed() once, capture screenshots per
- * docs/screenshot_plan.md, then delete the file from the editor before the
- * next clasp push.
+ * editor temporarily, run screenshotSeed() once, capture the listing
+ * screenshots, then delete the file from the editor before the next clasp push.
  *
  * resetOnboarding() forces the onboarding overlay back on by wiping the
  * UserProperties flag — used to capture screenshot 5.

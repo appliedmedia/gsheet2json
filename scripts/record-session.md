@@ -1,4 +1,4 @@
-<!-- scripts/record-session.md Copyright (c) 2026:appliedmedia. All Rights Reserved. Do Not Distribute. -->
+<!-- scripts/record-session.md Copyright (c) 2026:appliedmedia. Licensed under Code Transparency v1 (see LICENSE). -->
 
 # gsheet2json Promo Video: Full Recording Session
 
@@ -92,6 +92,6 @@ Done. YouTube URL: <the URL from Step 6>
 1. Open the URL in a browser and confirm the video is visible as Unlisted.
 2. Paste the URL into the Marketplace SDK Store Listing → Promotional Video URL field.
 3. Save Draft.
-4. Update `docs/plans/2026-05-09_plan_todo_AndrewHandsOnRequired.md` Step 2.5: mark done, paste URL.
+4. Note the published URL in your release tracking.
 
 <!-- end scripts/record-session.md -->

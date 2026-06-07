@@ -1,5 +1,5 @@
 #!/bin/bash
-# scripts/edit-promo.sh Copyright (c) 2026:appliedmedia. All Rights Reserved. Do Not Distribute.
+# scripts/edit-promo.sh Copyright (c) 2026:appliedmedia. Licensed under Code Transparency v1 (see LICENSE).
 #
 # Lane 3: Edit Promo Video
 # Overlays title card (0-6s) and end card (68s+) onto promo video, trims to 78 seconds.

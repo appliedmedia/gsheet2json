@@ -21,8 +21,6 @@ Feature: Pre-submit Marketplace hygiene
   Scenario: Required legal and asset files exist
     Then "docs/privacy_policy.md" exists and is non-empty
     And "docs/terms_of_service.md" exists and is non-empty
-    And "assets/marketplace_listing.yaml" exists and parses as YAML
-    And "docs/screenshot_plan.md" lists 5 screenshots
 
   Scenario: Vanity URLs only -- no baked-in github.io references in shippable files
     When I scan "src/" "docs/" "assets/" for "github.io"
@@ -30,7 +28,6 @@ Feature: Pre-submit Marketplace hygiene
 
   Scenario: Version constants agree across files
     Then VERSION in "src/main.ts" equals version in "package.json"
-    And VERSION in "src/main.ts" equals appVersion in "assets/marketplace_listing.yaml"
 
   Scenario: appsscript.json is shaped for an Editor add-on (no Workspace addOns block)
     Then appsscript.json has no key "addOns"

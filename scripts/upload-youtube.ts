@@ -1,4 +1,4 @@
-// scripts/upload-youtube.ts Copyright (c) 2026:appliedmedia. All Rights Reserved. Do Not Distribute.
+// scripts/upload-youtube.ts Copyright (c) 2026:appliedmedia. Licensed under Code Transparency v1 (see LICENSE).
 
 import { config } from 'dotenv';
 import { google } from 'googleapis';

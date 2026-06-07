@@ -14,8 +14,8 @@
     "record:promo": "echo 'Open Claude Code and paste: scripts/record-session.md'"
   },
   "dependencies": {
-    "googleapis": "^144.0.0",
-    "dotenv": "^16.0.0"
+    "dotenv": "^16.0.0",
+    "googleapis": "^144.0.0"
   },
   "devDependencies": {
     "@cucumber/cucumber": "^12.8.2",
@@ -24,7 +24,6 @@
     "@types/jsdom": "^28.0.1",
     "jsdom": "^29.1.1",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3",
-    "yaml": "^2.8.3"
+    "typescript": "^5.9.3"
   }
 }

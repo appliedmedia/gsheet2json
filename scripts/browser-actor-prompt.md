@@ -1,8 +1,8 @@
-<!-- scripts/browser-actor-prompt.md Copyright (c) 2026:appliedmedia. All Rights Reserved. Do Not Distribute. -->
+<!-- scripts/browser-actor-prompt.md Copyright (c) 2026:appliedmedia. Licensed under Code Transparency v1 (see LICENSE). -->
 
 # gsheet2json Promo Video: Browser Actor Prompt
 
-Paste this entire file into a Claude Code session that has the Claude-in-Chrome extension active. Claude executes each step via browser automation. AndrewC runs `./scripts/record-screen.sh start` before pasting and `./scripts/record-screen.sh stop` after Claude prints "SHOT LIST COMPLETE".
+Paste this entire file into a Claude Code session that has the Claude-in-Chrome extension active. Claude executes each step via browser automation. The operator runs `./scripts/record-screen.sh start` before pasting and `./scripts/record-screen.sh stop` after Claude prints "SHOT LIST COMPLETE".
 
 ## Prereqs checklist (verify before pasting)
 
@@ -140,9 +140,9 @@ Pause 8 seconds — this gives the end card overlay (applied in post at t=68) ro
 
 ## Done
 
-Print: `SHOT LIST COMPLETE — AndrewC: run ./scripts/record-screen.sh stop now`
+Print: `SHOT LIST COMPLETE — the operator: run ./scripts/record-screen.sh stop now`
 
-Wait for AndrewC to confirm recording stopped, then run:
+Wait for the operator to confirm recording stopped, then run:
 
 ```bash
 ./scripts/edit-promo.sh
