@@ -64,7 +64,7 @@ stop_recording() {
       exit 0
     fi
     sleep 0.2
-    ((count++))
+    count=$((count + 1))
   done
 
   # Last resort: SIGTERM (may leave the file unfinalized).

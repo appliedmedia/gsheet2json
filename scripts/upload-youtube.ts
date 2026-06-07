@@ -110,6 +110,9 @@ async function uploadToYouTube(): Promise<void> {
   }
 }
 
-uploadToYouTube();
+uploadToYouTube().catch((err) => {
+  console.error("Upload failed:", err);
+  process.exit(1);
+});
 
 // end scripts/upload-youtube.ts

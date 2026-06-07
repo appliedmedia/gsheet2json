@@ -132,7 +132,7 @@ function friendlyErrorMessage(err: Error): string {
   }
 
   // Drive quota
-  if (/quota|storage.*full|drive.*limit|insufficient/i.test(msg)) {
+  if (/quota|storage.*full|drive.*limit/i.test(msg)) {
     return "Google Drive storage is full. Free up space and try again.";
   }
 

@@ -35,7 +35,7 @@ namespace gsheet2json {
      * Main licensing function.
      *
      * Resolution order:
-     *   1. UserProperties cache (1-hour TTL)
+     *   1. UserProperties cache (5-minute TTL)
      *   2. Marketplace Licensing API (LicenseManager)
      *   3. Trial / expired fallback based on install date
      */

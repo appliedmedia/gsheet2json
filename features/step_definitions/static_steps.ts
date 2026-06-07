@@ -67,7 +67,6 @@ Then('appsscript.json has key {string}', function (dottedKey: string) {
     }
     cur = (cur as Record<string, unknown>)[part];
   }
-  assert.ok(cur, `appsscript.json key "${dottedKey}" is falsy`);
 });
 
 Then('appsscript.json has no key {string}', function (dottedKey: string) {

@@ -26,6 +26,7 @@ Rough size and contents (rows x columns, formulas, validations, merges). Please 
 If applicable, add screenshots of the sidebar or the error.
 
 **Environment**
+ - Google Sheets platform [e.g. Web, Android app, iOS app]
  - Browser [e.g. Chrome 120]
  - OS [e.g. macOS 14]
  - Add-on version [from the gear menu, e.g. 1.1.1]
