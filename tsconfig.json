@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2015",
+    "module": "none",
+    "lib": ["ES2017"],
+    "rootDir": "src",
+    "outDir": "out",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "declaration": false,
+    "noEmitOnError": true
+  },
+  "include": [
+    "src/types.ts",
+    "src/utils.ts",
+    "src/progress.ts",
+    "src/export.ts",
+    "src/import.ts",
+    "src/main.ts",
+    "src/settings.ts",
+    "src/licensing.ts"
+  ],
+  "exclude": ["node_modules"]
+}

@@ -1,0 +1,1623 @@
+<script>
+  /* ════════════════════════════════════════════════════════════════════════
+     Shared constants — keep names in sync with utils.ts ExportFormat so the
+     server-side filename builder and the client-side download fallback both
+     speak the same `.g2j.json` / `export` vocabulary.
+     ════════════════════════════════════════════════════════════════════════ */
+  var EXPORT_EXTENSION = '.g2j.json';
+  var DEFAULT_EXPORT_NAME = 'export';
+
+  /* ════════════════════════════════════════════════════════════════════════
+     Status strip — one shared mini progress bar driven by a fake fill.
+     Apps Script has no real streaming progress, so we ramp to 92% over
+     `slow` mode (8s) or `fast` mode (0.6s) and snap to 100% on success.
+     ════════════════════════════════════════════════════════════════════════ */
+  var statusStrip    = document.getElementById('statusStrip');
+  var statusFill     = document.getElementById('statusFill');
+  var statusMessage  = document.getElementById('statusMessage');
+  var statusPercent  = document.getElementById('statusPercent');
+
+  var progressTimer = null;
+  var statusHideTimer = null;
+  var statusVisibleAt = 0;
+  var STATUS_MIN_VISIBLE_MS = 5000;
+  function setProgress(pct) {
+    pct = Math.max(0, Math.min(100, pct));
+    statusFill.style.width = `${pct}%`;
+    statusPercent.textContent = `${Math.round(pct)}%`;
+  }
+  function clearStatusHideTimer() {
+    if (statusHideTimer) { clearTimeout(statusHideTimer); statusHideTimer = null; }
+  }
+  function markStatusVisible() {
+    clearStatusHideTimer();
+    statusVisibleAt = Date.now();
+    statusStrip.classList.add('visible');
+  }
+  function scheduleStatusHide() {
+    clearStatusHideTimer();
+    const elapsed = Date.now() - statusVisibleAt;
+    const wait = Math.max(0, STATUS_MIN_VISIBLE_MS - elapsed);
+    statusHideTimer = setTimeout(function() {
+      statusStrip.classList.remove('visible');
+      setProgress(0);
+      if (typeof autosizeStaging === 'function') autosizeStaging();
+    }, wait);
+  }
+  function stopProgressTimer() {
+    if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
+  }
+  /**
+   * Start the status strip with a fake easeOutCubic fill. Used for local-only
+   * ops (reading a file in the browser, blob download) that don't have a
+   * corresponding server-side progress stream.
+   */
+  function startStatus(message, kind) {
+    statusMessage.textContent = message || 'Working\u2026';
+    setProgress(0);
+    markStatusVisible();
+    if (typeof autosizeStaging === 'function') autosizeStaging();
+    stopProgressTimer();
+    const duration = kind === 'fast' ? 600 : 8000;
+    const start = Date.now();
+    progressTimer = setInterval(function() {
+      const elapsed = Date.now() - start;
+      const t = Math.min(1, elapsed / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setProgress(eased * 92);
+      if (t >= 1) stopProgressTimer();
+    }, 50);
+  }
+  /**
+   * Start the status strip in polling mode: every 400ms, read the live
+   * `{ pct, msg }` checkpoint from the server's CacheService channel for
+   * this op's `sessionId`. The caller still drives finishStatus / abortStatus.
+   */
+  function startStatusPolled(sessionId, initialMessage) {
+    statusMessage.textContent = initialMessage || 'Working\u2026';
+    setProgress(0);
+    markStatusVisible();
+    if (typeof autosizeStaging === 'function') autosizeStaging();
+    stopProgressTimer();
+    if (!sessionId) return;
+    progressTimer = setInterval(function() {
+      google.script.run
+        .withSuccessHandler(function(p) {
+          if (!p) return;
+          if (typeof p.pct === 'number') setProgress(p.pct);
+          if (p.msg) statusMessage.textContent = p.msg;
+        })
+        .withFailureHandler(function() {})
+        .gsheet2json_handleCommand('getProgress', { sessionId: sessionId });
+    }, 400);
+  }
+  function finishStatus() {
+    stopProgressTimer();
+    setProgress(100);
+    scheduleStatusHide();
+  }
+  function abortStatus() {
+    stopProgressTimer();
+    setProgress(0);
+    scheduleStatusHide();
+  }
+  /** Generate a short random session id for progress polling. */
+  function newSessionId() {
+    return Math.random().toString(36).slice(2) + Date.now().toString(36);
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     Activity feed
+     ════════════════════════════════════════════════════════════════════════ */
+  var activityList     = document.getElementById('activityList');
+  var activityClearBtn = document.getElementById('activityClearBtn');
+  var copyToast   = document.getElementById('copyToast');
+  var toastTimer  = null;
+
+  function showToast(message, x, y) {
+    if (!copyToast) return;
+    copyToast.textContent = message || 'Copied to clipboard';
+    copyToast.classList.add('visible');
+    if (typeof x === 'number' && typeof y === 'number') {
+      // Default: horizontally centered on cursor x, 20px below cursor y.
+      copyToast.style.left = `${x}px`;
+      copyToast.style.top  = `${y + 20}px`;
+      copyToast.style.transform = 'translate(-50%, 0)';
+      // Measure on next frame and snap any clipping back into the viewport:
+      // if the right edge clips, anchor the toast's right edge to the cursor;
+      // if the left edge clips, anchor its left edge to the cursor; if the
+      // bottom clips, flip above the cursor.
+      requestAnimationFrame(function() {
+        const r = copyToast.getBoundingClientRect();
+        const margin = 4;
+        let tx = -50, ty = 0;
+        let topPx = y + 20;
+        if (r.right > window.innerWidth - margin) tx = -100;
+        else if (r.left < margin) tx = 0;
+        if (r.bottom > window.innerHeight - margin) {
+          ty = -100;
+          topPx = y - 4;
+        }
+        copyToast.style.transform = `translate(${tx}%, ${ty}%)`;
+        copyToast.style.top = `${topPx}px`;
+      });
+    } else {
+      // Center in viewport (CSS defaults take over).
+      copyToast.style.left = '';
+      copyToast.style.top  = '';
+      copyToast.style.transform = '';
+    }
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() {
+      copyToast.classList.remove('visible');
+      toastTimer = null;
+    }, 1400);
+  }
+
+  function renderActivity(entries) {
+    entries = entries || [];
+    activityList.innerHTML = '';
+    if (entries.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'activity-empty';
+      empty.innerHTML = 'No activity yet.<br>Upload, download,<br>load or save a JSON<br>to get started.';
+      activityList.appendChild(empty);
+      activityClearBtn.hidden = true;
+      return;
+    }
+    activityClearBtn.hidden = false;
+    entries.forEach(function(e) { activityList.appendChild(renderActivityRow(e)); });
+  }
+  function renderActivityRow(e) {
+    const row = document.createElement('div');
+    row.className = `activity-row ${e.ok ? 'ok' : 'error'}`;
+
+    const body = document.createElement('div');
+    body.className = 'activity-body';
+
+    const title = document.createElement('div');
+    title.className = 'activity-title-text';
+    title.textContent = e.title || '';
+    if (!e.ok && e.error) {
+      title.style.cursor = 'pointer';
+      title.title = 'Error: ' + e.error + '\n(click to copy)';
+      title.onclick = function(ev) { showErrorDetails(e, ev); };
+    }
+    body.appendChild(title);
+
+    const actions = document.createElement('div');
+    actions.className = 'activity-actions';
+
+    if (e.fileId) {
+      actions.appendChild(makeActivityIconButton(
+        'Open file',
+        '<path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm1 7V3.5L19.5 9H15z"/>',
+        function() { openDriveFile(e); }
+      ));
+      actions.appendChild(makeActivityIconButton(
+        'Show enclosing folder',
+        '<path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>',
+        function() { showFileInDrive(e); }
+      ));
+      const dlBtn = makeActivityIconButton(
+        'Download',
+        '<path d="M5 20h14v-2H5v2zM12 2v10.17l3.59-3.58L17 10l-5 5-5-5 1.41-1.41L11 12.17V2h1z"/>',
+        function() { downloadFromDrive(e, dlBtn); }
+      );
+      actions.appendChild(dlBtn);
+    }
+    /* Error details now accessible by clicking the title row directly. */
+    if (actions.childNodes.length > 0) body.appendChild(actions);
+    row.appendChild(body);
+
+    const time = document.createElement('div');
+    time.className = 'activity-time';
+    time.textContent = formatTime(e.at);
+    time.title = formatFullDateTime(e.at);
+    row.appendChild(time);
+
+    return row;
+  }
+  function formatTime(iso) {
+    try {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      // Locale-aware short time (12-hour with AM/PM in en-US, 24-hour where local).
+      return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    } catch (_) { return ''; }
+  }
+  function formatFullDateTime(iso) {
+    try {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      const pad = function(n) { return n < 10 ? `0${n}` : `${n}`; };
+      const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+      return `${date} ${time}`;
+    } catch (_) { return ''; }
+  }
+
+  function activityEntry(entry) {
+    google.script.run
+      .withSuccessHandler(renderActivity)
+      .withFailureHandler(function() {})
+      .gsheet2json_handleCommand('appendActivityEntry', entry);
+  }
+  function loadActivity() {
+    google.script.run
+      .withSuccessHandler(renderActivity)
+      .withFailureHandler(function() {})
+      .gsheet2json_handleCommand('getActivityFeed');
+  }
+  activityClearBtn.onclick = function() {
+    google.script.run
+      .withSuccessHandler(renderActivity)
+      .withFailureHandler(function() {})
+      .gsheet2json_handleCommand('clearActivityFeed');
+  };
+
+  /** Open the parent folder of a Drive file in a new tab (activity action). */
+  function makeActivityIconButton(title, path, onClick) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'activity-action-icon';
+    btn.title = title;
+    btn.setAttribute('aria-label', title);
+    btn.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${path}</svg>`;
+    btn.onclick = onClick;
+    return btn;
+  }
+  function openDriveFile(e) {
+    if (!e || !e.fileId) return;
+    const fileUrl = e.openUrl || `https://drive.google.com/file/d/${e.fileId}/view`;
+    window.open(fileUrl, '_blank');
+  }
+  /** Open the parent folder of a Drive file in a new tab (activity action). */
+  function showFileInDrive(e) {
+    if (!e.fileId) return;
+    google.script.run
+      .withSuccessHandler(function(url) {
+        if (url) window.open(url, '_blank');
+        else if (e.openUrl) window.open(e.openUrl, '_blank');
+      })
+      .withFailureHandler(function() {
+        if (e.openUrl) window.open(e.openUrl, '_blank');
+      })
+      .gsheet2json_handleCommand('getFileFolderUrl', { fileId: e.fileId });
+  }
+
+  /** Re-fetch a Drive file and trigger a local blob download (activity action). */
+  function downloadFromDrive(e, btn) {
+    if (!e.fileId) return;
+    const originalTitle = btn ? btn.title : null;
+    if (btn) { btn.disabled = true; btn.title = 'Fetching\u2026'; }
+    google.script.run
+      .withSuccessHandler(function(info) {
+        if (btn) { btn.disabled = false; btn.title = originalTitle; }
+        if (info && info.content != null) {
+          triggerBlobDownload(info.filename || (DEFAULT_EXPORT_NAME + EXPORT_EXTENSION), info.content);
+        }
+      })
+      .withFailureHandler(function(err) {
+        if (btn) { btn.disabled = false; btn.title = originalTitle; }
+        const msg = (err && err.message) ? err.message : 'Download failed';
+        alert(msg);
+      })
+      .gsheet2json_handleCommand('getDriveFileInfo', e.fileId);
+  }
+
+  function showErrorDetails(e, ev) {
+    const msg = (e.error || e.subtitle || e.title || 'Unknown error');
+    const x = ev && typeof ev.clientX === 'number' ? ev.clientX : undefined;
+    const y = ev && typeof ev.clientY === 'number' ? ev.clientY : undefined;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(msg).then(function() {
+        showToast('Error details copied', x, y);
+      }).catch(function() {
+        showToast('Could not copy', x, y);
+      });
+    } else {
+      showToast('Clipboard unavailable', x, y);
+    }
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     Tile actions
+     ════════════════════════════════════════════════════════════════════════ */
+  var tileImportLocal  = document.getElementById('tileImportLocal');
+  var tileImportDrive  = document.getElementById('tileImportDrive');
+  var tileExportLocal  = document.getElementById('tileExportLocal');
+  var tileExportDrive  = document.getElementById('tileExportDrive');
+  var fileInput        = document.getElementById('fileInput');
+
+  var tilesLockedByLicense = false;
+
+  function setTilesBusy(busy) {
+    var disabled = !!busy || tilesLockedByLicense;
+    [tileImportLocal, tileImportDrive, tileExportLocal, tileExportDrive].forEach(function(t) {
+      if (t) t.disabled = disabled;
+    });
+  }
+
+  function setTilesLockedByLicense(locked) {
+    tilesLockedByLicense = !!locked;
+    var title = locked ? 'Trial expired — upgrade to use' : '';
+    [tileImportLocal, tileImportDrive, tileExportLocal, tileExportDrive].forEach(function(t) {
+      if (t) {
+        t.disabled = tilesLockedByLicense;
+        t.title = title;
+      }
+    });
+  }
+
+  // ── Upload (load a local .json file into the staging textarea) ──
+  tileImportLocal.onclick = function() { fileInput.click(); };
+  fileInput.onchange = function() {
+    const f = this.files && this.files[0];
+    this.value = '';
+    if (!f) return;
+    startStatus(`Reading ${f.name}\u2026`, 'fast');
+    setTilesBusy(true);
+    const r = new FileReader();
+    r.onload = function() {
+      setTilesBusy(false);
+      finishStatus();
+      stagingSource = f.name;
+      stagingTextarea.value = r.result || '';
+      validateStaging();
+      growStagingToFitContent();
+      stagingTextarea.focus();
+    };
+    r.onerror = function() {
+      setTilesBusy(false);
+      abortStatus();
+      activityEntry({ ok: false, title: `Could not read ${f.name}` });
+    };
+    r.readAsText(f);
+  };
+
+  // ── Download (export to local file) ──
+  tileExportLocal.onclick = function() {
+    const sid = newSessionId();
+    startStatusPolled(sid, 'Generating JSON\u2026');
+    setTilesBusy(true);
+    google.script.run
+      .withSuccessHandler(function(data) {
+        setTilesBusy(false);
+        finishStatus();
+        triggerBlobDownload(data.filename, data.content);
+        activityEntry({ ok: true, title: `Downloaded "${data.filename}"` });
+      })
+      .withFailureHandler(function(err) {
+        setTilesBusy(false);
+        abortStatus();
+        const msg = (err && err.message) ? err.message : 'Download failed';
+        activityEntry({ ok: false, title: 'Download failed', error: msg });
+      })
+      .gsheet2json_handleCommand('getExportJsonString', { sessionId: sid });
+  };
+  function triggerBlobDownload(filename, content) {
+    const blob = new Blob([content], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || (DEFAULT_EXPORT_NAME + EXPORT_EXTENSION);
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  // ── To Drive (export to Drive) ──
+  tileExportDrive.onclick = function() {
+    const sid = newSessionId();
+    startStatusPolled(sid, 'Saving to Google Drive\u2026');
+    setTilesBusy(true);
+    google.script.run
+      .withSuccessHandler(function(info) {
+        setTilesBusy(false);
+        finishStatus();
+        activityEntry({
+          ok: true,
+          title: `Saved "${info.filename}" to Drive`,
+          fileId: info.fileId,
+          openUrl: info.url
+        });
+      })
+      .withFailureHandler(function(err) {
+        setTilesBusy(false);
+        abortStatus();
+        const msg = (err && err.message) ? err.message : 'Save failed';
+        activityEntry({ ok: false, title: 'Save to Drive failed', error: msg });
+      })
+      .gsheet2json_handleCommand('runExportAndSave', { sessionId: sid });
+  };
+
+  /* ════════════════════════════════════════════════════════════════════════
+     Staging area — validate JSON and commit to the sheet.
+     Upload and From Drive populate this textarea; the user reviews and
+     clicks Import to actually write the sheet. Paste/edit works too.
+     ════════════════════════════════════════════════════════════════════════ */
+  var stagingTextarea = document.getElementById('stagingTextarea');
+  var stagingGutter   = document.getElementById('stagingGutter');
+  var stagingStatus   = document.getElementById('stagingStatus');
+  var stagingClear    = document.getElementById('stagingClear');
+  var stagingImport   = document.getElementById('stagingImport');
+  var stagingEditor   = document.getElementById('stagingEditor');
+  var stagingErrorMarker = document.getElementById('stagingErrorMarker');
+  var stagingPlaceholder = document.getElementById('stagingPlaceholder');
+  function updateStagingPlaceholder() {
+    if (!stagingPlaceholder) return;
+    if (stagingTextarea.value.length > 0) stagingPlaceholder.classList.add('hidden');
+    else stagingPlaceholder.classList.remove('hidden');
+  }
+  var stagingPanel    = document.querySelector('.staging');
+  var activityPanel        = document.querySelector('.activity');
+  var sidebarEl       = document.getElementById('sidebar');
+  var stagingSource   = '';  // human-readable source label for the activity entry
+  var stagingParseError = null;
+  var stagingValidateTimer = null;
+  var STAGING_VALIDATE_IDLE_MS = 3000;
+  var RESIZE_HANDLE_ZONE = 10;
+  var isStagingResizeDrag = false;
+
+  /* ── Staging layout and divider sizing ──────────────────────────────── */
+  var STAGING_MIN_H = 110;
+  var STAGING_DEFAULT_H = 220;
+  var LOG_MIN_H = 96;
+  var stagingPreferredH = STAGING_DEFAULT_H;
+
+  function measureFixedChromeH() {
+    // Sum of everything in the sidebar that isn't the staging panel and activity feed.
+    const sidebar = document.getElementById('sidebar');
+    const footer = document.getElementById('footerBar');
+    const tileRow = sidebar.querySelector('.tile-row');
+    const picker = document.getElementById('drivePicker');
+    const accent = 3;
+    const statusH = statusStrip ? statusStrip.offsetHeight : 0;
+    const tileRowH = tileRow ? tileRow.offsetHeight : 0;
+    const pickerH = picker && picker.classList.contains('visible') ? picker.offsetHeight : 0;
+    const footerH = footer ? footer.offsetHeight : 0;
+    return accent + statusH + tileRowH + pickerH + footerH;
+  }
+  function computeStagingBounds() {
+    const sidebarH = sidebarEl.clientHeight || window.innerHeight;
+    const available = sidebarH - measureFixedChromeH() - LOG_MIN_H;
+    const maxH = Math.max(STAGING_MIN_H, available);
+    return { min: STAGING_MIN_H, max: maxH };
+  }
+  function applyStagingHeight(next) {
+    const b = computeStagingBounds();
+    const h = Math.max(b.min, Math.min(next, b.max));
+    stagingPreferredH = h;
+    stagingPanel.style.height = `${h}px`;
+  }
+  function autosizeStaging() {
+    applyStagingHeight(stagingPreferredH);
+  }
+  function growStagingToFitContent() {
+    const chromeH = stagingPanel.offsetHeight - stagingTextarea.clientHeight;
+    const desired = stagingTextarea.scrollHeight + chromeH;
+    if (desired > stagingPreferredH) applyStagingHeight(desired);
+  }
+  function escapeAttr(s) {
+    return String(s).replace(/[&<>"']/g, function(c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function renderLineNumbers() {
+    const lineCount = (stagingTextarea.value.match(/\n/g) || []).length + 1;
+    const digits = String(lineCount).length;
+    // Just the digits + a hair of breathing room. The warning marker is no
+    // longer in this column — it's an absolute overlay sitting on the gutter↔
+    // textarea seam, so the gutter never has to widen for it.
+    stagingGutter.style.width = `calc(${Math.max(1, digits)}ch + 2px)`;
+    const lines = [];
+    for (let i = 1; i <= lineCount; i++) {
+      const cls = (stagingParseError && stagingParseError.line === i)
+        ? 'staging-gutter-line error'
+        : 'staging-gutter-line';
+      lines.push(`<span class="${cls}">${i}</span>`);
+    }
+    stagingGutter.innerHTML = lines.join('');
+    syncGutterScroll();
+    updateErrorMarker();
+  }
+  function getStagingLineHeight() {
+    const cs = window.getComputedStyle(stagingTextarea);
+    const fs = parseFloat(cs.fontSize) || 10;
+    const raw = cs.lineHeight;
+    if (raw === 'normal') return fs * 1.2;
+    const v = parseFloat(raw);
+    if (isNaN(v)) return fs * 1.2;
+    // Unitless multipliers ("1.45") parse as small floats; explicit pixels
+    // ("14.5px") parse as the px value. Threshold of 4 cleanly separates them.
+    return v < 4 ? v * fs : v;
+  }
+  function updateErrorMarker() {
+    if (!stagingErrorMarker) return;
+    if (!stagingParseError || !stagingParseError.line) {
+      stagingErrorMarker.hidden = true;
+      stagingErrorMarker.textContent = '';
+      return;
+    }
+    const cs = window.getComputedStyle(stagingTextarea);
+    const lineHeight = getStagingLineHeight();
+    const padTop = parseFloat(cs.paddingTop) || 0;
+    const lineCenterY = padTop + (stagingParseError.line - 0.5) * lineHeight - stagingTextarea.scrollTop;
+    const viewH = stagingTextarea.clientHeight;
+    if (lineCenterY < 0 || lineCenterY > viewH) {
+      stagingErrorMarker.hidden = true;
+      return;
+    }
+    stagingErrorMarker.textContent = '\u26a0\ufe0f';
+    stagingErrorMarker.title = stagingParseError.message || '';
+    stagingErrorMarker.style.top = `${lineCenterY}px`;
+    stagingErrorMarker.style.left = `${stagingGutter.offsetWidth}px`;
+    stagingErrorMarker.hidden = false;
+  }
+  function parseErrorLocation(message, text) {
+    const out = { line: null, column: null, position: null };
+    const mLine = /line\s+(\d+)/i.exec(message || '');
+    if (mLine) out.line = parseInt(mLine[1], 10);
+    const mCol = /column\s+(\d+)/i.exec(message || '');
+    if (mCol) out.column = parseInt(mCol[1], 10);
+    const mPos = /position\s+(\d+)/i.exec(message || '');
+    if (mPos) {
+      const pos = parseInt(mPos[1], 10);
+      const s = String(text || '');
+      if (!isNaN(pos) && pos >= 0) {
+        // V8 reports the position of the *unexpected token*, not the user's
+        // mistake. When a delimiter (e.g. comma) is missing at the end of
+        // line N, the parser only fails when it reaches the next token,
+        // which is typically the first non-whitespace character of line N+1
+        // — making a naive line calc blame the wrong line. Walk back
+        // through whitespace (including newlines) to land on the last
+        // meaningful character before the break; that character is almost
+        // always where the user's edit actually went wrong.
+        let refined = Math.min(pos, Math.max(0, s.length - 1));
+        while (refined > 0 && /\s/.test(s.charAt(refined))) refined--;
+        out.position = refined;
+        const before = s.slice(0, refined);
+        const split = before.split('\n');
+        out.line = split.length;
+        out.column = split[split.length - 1].length + 1;
+      }
+    }
+    return out;
+  }
+  function isNearResizeBoundary(clientY) {
+    const a = stagingPanel.getBoundingClientRect();
+    const b = activityPanel.getBoundingClientRect();
+    return Math.abs(clientY - a.bottom) <= RESIZE_HANDLE_ZONE ||
+      Math.abs(clientY - b.top) <= RESIZE_HANDLE_ZONE;
+  }
+  // The picker's bottom border doubles as a resize handle when the picker
+  // is open. Mirror the staging↔activity resize wiring.
+  var isPickerResizeDrag = false;
+  var isHiddenListResizeDrag = false;
+  function isNearPickerBoundary(clientY) {
+    const pickerEl = document.getElementById('drivePicker');
+    if (!pickerEl || !pickerEl.classList.contains('visible')) return false;
+    const r = pickerEl.getBoundingClientRect();
+    return Math.abs(clientY - r.bottom) <= RESIZE_HANDLE_ZONE;
+  }
+  // Top edge of the picker-foot (when expanded) is a drag handle that grows
+  // the hidden-list upward, taking space from the picker-list above.
+  function isNearHiddenListBoundary(clientY) {
+    const pickerEl = document.getElementById('drivePicker');
+    if (!pickerEl || !pickerEl.classList.contains('visible')) return false;
+    const foot = pickerEl.querySelector('.picker-foot');
+    if (!foot || !foot.classList.contains('expanded')) return false;
+    const r = foot.getBoundingClientRect();
+    return Math.abs(clientY - r.top) <= RESIZE_HANDLE_ZONE;
+  }
+  function applyHiddenListHeight(h) {
+    const pickerEl = document.getElementById('drivePicker');
+    const hl = document.getElementById('hiddenList');
+    if (!pickerEl || !hl) return;
+    const head = pickerEl.querySelector('.picker-head');
+    const foot = pickerEl.querySelector('.picker-foot');
+    const filter = pickerEl.querySelector('.picker-filter');
+    const list = document.getElementById('pickerList');
+    // Restore display before measuring so we capture the natural sizes — the
+    // input inside picker-filter has an intrinsic height that flex-shrink:1
+    // alone won't squash to zero.
+    if (filter) filter.style.display = '';
+    if (list) list.style.display = '';
+    const headH = head ? head.offsetHeight : 0;
+    const footChrome = foot ? (foot.offsetHeight - hl.offsetHeight) : 0;
+    const filterH = filter ? filter.offsetHeight : 0;
+    const contentH = hl.scrollHeight; // natural height of all hidden rows
+    // normalMax: filter visible, picker-list squeezed to 0 via overflow:auto.
+    // extremeMax: filter+list both display:none so hidden-list reaches just
+    // below the picker title.
+    const normalMax = pickerEl.offsetHeight - headH - footChrome - filterH;
+    const extremeMax = pickerEl.offsetHeight - headH - footChrome;
+    const clamped = Math.max(40, Math.min(h, Math.max(40, contentH), extremeMax));
+    const collapse = clamped > normalMax;
+    if (filter) filter.style.display = collapse ? 'none' : '';
+    if (list) list.style.display = collapse ? 'none' : '';
+    hl.style.height = `${clamped}px`;
+  }
+  function beginHiddenListResize(ev) {
+    const pickerEl = document.getElementById('drivePicker');
+    if (!pickerEl) return;
+    const foot = pickerEl.querySelector('.picker-foot');
+    const hl = document.getElementById('hiddenList');
+    if (!foot || !hl) return;
+    const startY = ev.clientY;
+    const startH = hl.offsetHeight;
+    isHiddenListResizeDrag = true;
+    foot.classList.add('dragging');
+    document.body.style.cursor = 'row-resize';
+    function onMove(moveEv) {
+      // Pulling up (clientY decreasing) increases hidden-list height.
+      applyHiddenListHeight(startH + (startY - moveEv.clientY));
+    }
+    function onUp() {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      isHiddenListResizeDrag = false;
+      foot.classList.remove('dragging');
+      foot.classList.remove('resize-hot');
+      document.body.style.cursor = '';
+    }
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
+  function applyPickerHeight(h) {
+    const pickerEl = document.getElementById('drivePicker');
+    if (!pickerEl) return;
+    const min = 120;
+    const max = Math.max(min, window.innerHeight * 0.6);
+    pickerEl.style.height = `${Math.max(min, Math.min(max, h))}px`;
+    // When the picker shrinks (e.g. user grew the JSON staging area upward),
+    // re-clamp the hidden-list so its foot can't overflow off the picker
+    // bottom and conceal the toggle.
+    const hl = document.getElementById('hiddenList');
+    if (hl && hl.classList.contains('visible')) {
+      applyHiddenListHeight(hl.offsetHeight);
+    }
+  }
+  function beginPickerResize(ev) {
+    const pickerEl = document.getElementById('drivePicker');
+    if (!pickerEl) return;
+    const startY = ev.clientY;
+    const startH = pickerEl.offsetHeight;
+    isPickerResizeDrag = true;
+    pickerEl.classList.add('dragging');
+    document.body.style.cursor = 'row-resize';
+    function onMove(moveEv) {
+      applyPickerHeight(startH + (moveEv.clientY - startY));
+    }
+    function onUp() {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      isPickerResizeDrag = false;
+      pickerEl.classList.remove('dragging');
+      pickerEl.classList.remove('resize-hot');
+      document.body.style.cursor = '';
+    }
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
+  function updateResizeHotspot(clientY) {
+    const hot = isNearResizeBoundary(clientY);
+    stagingPanel.classList.toggle('resize-hot', hot);
+    activityPanel.classList.toggle('resize-hot', hot);
+    const pickerEl = document.getElementById('drivePicker');
+    if (pickerEl) pickerEl.classList.toggle('resize-hot', isNearPickerBoundary(clientY));
+    const foot = pickerEl ? pickerEl.querySelector('.picker-foot') : null;
+    if (foot) foot.classList.toggle('resize-hot', isNearHiddenListBoundary(clientY));
+  }
+  function clearResizeHotspot() {
+    if (isStagingResizeDrag) return;
+    stagingPanel.classList.remove('resize-hot');
+    activityPanel.classList.remove('resize-hot');
+    const pickerEl = document.getElementById('drivePicker');
+    if (pickerEl && !isPickerResizeDrag) pickerEl.classList.remove('resize-hot');
+    const foot = pickerEl ? pickerEl.querySelector('.picker-foot') : null;
+    if (foot && !isHiddenListResizeDrag) foot.classList.remove('resize-hot');
+  }
+  function beginBoundaryResize(ev) {
+    const startY = ev.clientY;
+    const startH = stagingPanel.offsetHeight;
+    isStagingResizeDrag = true;
+    stagingPanel.classList.add('dragging');
+    activityPanel.classList.add('dragging');
+    document.body.style.cursor = 'row-resize';
+    function onMove(moveEv) {
+      const delta = moveEv.clientY - startY;
+      applyStagingHeight(startH + delta);
+    }
+    function onUp() {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      isStagingResizeDrag = false;
+      stagingPanel.classList.remove('dragging');
+      activityPanel.classList.remove('dragging');
+      document.body.style.cursor = '';
+      clearResizeHotspot();
+    }
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
+  sidebarEl.addEventListener('pointermove', function(ev) { updateResizeHotspot(ev.clientY); });
+  sidebarEl.addEventListener('pointerleave', clearResizeHotspot);
+  sidebarEl.addEventListener('pointerdown', function(ev) {
+    if (isNearHiddenListBoundary(ev.clientY)) {
+      ev.preventDefault();
+      beginHiddenListResize(ev);
+      return;
+    }
+    if (isNearPickerBoundary(ev.clientY)) {
+      ev.preventDefault();
+      beginPickerResize(ev);
+      return;
+    }
+    if (!isNearResizeBoundary(ev.clientY)) return;
+    if (ev.target && ev.target.closest('.staging-actions')) return;
+    ev.preventDefault();
+    beginBoundaryResize(ev);
+  });
+  window.addEventListener('resize', function() {
+    autosizeStaging();
+    updateErrorMarker();
+  });
+  function syncGutterScroll() {
+    // The gutter and textarea may have slightly different scrollHeights
+    // (padding/box-sizing differences accumulate at large line counts and
+    // can leave the gutter clamped before the textarea reaches its end).
+    // Sync proportionally so the gutter always tracks the textarea.
+    const taMax = stagingTextarea.scrollHeight - stagingTextarea.clientHeight;
+    const guMax = stagingGutter.scrollHeight - stagingGutter.clientHeight;
+    if (taMax <= 0 || guMax <= 0) {
+      stagingGutter.scrollTop = 0;
+      return;
+    }
+    const ratio = stagingTextarea.scrollTop / taMax;
+    stagingGutter.scrollTop = Math.round(ratio * guMax);
+  }
+  stagingTextarea.addEventListener('scroll', function() {
+    syncGutterScroll();
+    updateErrorMarker();
+  });
+
+  function clearValidationErrorUi() {
+    stagingParseError = null;
+    stagingStatus.title = '';
+  }
+  function stopDelayedValidation() {
+    if (stagingValidateTimer) {
+      clearTimeout(stagingValidateTimer);
+      stagingValidateTimer = null;
+    }
+  }
+  function setStagingPendingState() {
+    updateStagingPlaceholder();
+    clearValidationErrorUi();
+    stagingImport.disabled = true;
+    if (!stagingTextarea.value || !stagingTextarea.value.trim()) {
+      stagingStatus.textContent = 'Empty';
+      stagingStatus.className = 'staging-status copyable';
+      stagingStatus.title = 'Empty';
+      renderLineNumbers();
+      return;
+    }
+    stagingStatus.textContent = '\u2014';
+    stagingStatus.className = 'staging-status';
+    stagingStatus.title = 'Waiting for input to settle...';
+    renderLineNumbers();
+  }
+  function scheduleStagingValidation() {
+    stopDelayedValidation();
+    stagingValidateTimer = setTimeout(function() {
+      stagingValidateTimer = null;
+      validateStaging();
+    }, STAGING_VALIDATE_IDLE_MS);
+  }
+  function setValidationErrorUi(msg, textValue) {
+    const where = parseErrorLocation(msg, textValue);
+    stagingParseError = {
+      message: msg,
+      line: where.line,
+      column: where.column,
+      position: where.position
+    };
+    // Show the full parse error in the tooltip so the user doesn't have to
+    // copy + look — and the affordance hint goes on its own line below.
+    stagingStatus.title = `Invalid: ${msg}\n(click to copy + scroll to line)`;
+  }
+  function scrollErrorIntoView() {
+    if (!stagingParseError || !stagingParseError.line) return;
+    const cs = window.getComputedStyle(stagingTextarea);
+    const lineHeight = getStagingLineHeight();
+    const padTop = parseFloat(cs.paddingTop) || 0;
+    const lineY = padTop + (stagingParseError.line - 1) * lineHeight;
+    const viewH = stagingTextarea.clientHeight;
+    const maxScroll = Math.max(0, stagingTextarea.scrollHeight - viewH);
+    const targetTop = Math.max(0, Math.min(maxScroll, lineY - viewH / 2 + lineHeight / 2));
+    // Focus + drop the cursor first so the user can start typing the fix
+    // immediately. Both of these can trigger an implicit scroll-to-cursor in
+    // the browser, so we run them BEFORE the explicit center-scroll below
+    // (otherwise the implicit scroll clobbers ours).
+    stagingTextarea.focus();
+    if (stagingParseError.position != null) {
+      const s = stagingTextarea.value;
+      const pos = Math.min(stagingParseError.position, s.length);
+      // Select the entire line containing the error so the suspect chunk
+      // (column 0 → end of line) is unmistakably highlighted.
+      const lineStart = s.lastIndexOf('\n', pos - 1) + 1;
+      let lineEnd = s.indexOf('\n', pos);
+      if (lineEnd === -1) lineEnd = s.length;
+      stagingTextarea.setSelectionRange(lineStart, lineEnd);
+    }
+    stagingTextarea.scrollTop = targetTop;
+    syncGutterScroll();
+    updateErrorMarker();
+  }
+  function validateStaging() {
+    updateStagingPlaceholder();
+    const v = stagingTextarea.value;
+    if (!v || !v.trim()) {
+      clearValidationErrorUi();
+      stagingStatus.textContent = 'Empty';
+      stagingStatus.className = 'staging-status';
+      stagingStatus.classList.add('copyable');
+      stagingStatus.title = 'Empty';
+      stagingImport.disabled = true;
+      renderLineNumbers();
+      return false;
+    }
+    try {
+      const parsed = JSON.parse(v);
+      clearValidationErrorUi();
+      // Shape-check against SheetExport. The textarea is `gsheet2json import`
+      // staging — generic JSON without `cells` parses fine but is meaningless
+      // to the downstream importer (import.ts:30 hard-fails), so report it as
+      // a definitive "wrong format" rather than "Valid JSON with a caveat".
+      const wrongShape = !parsed || typeof parsed !== 'object' || Array.isArray(parsed) || !parsed.cells;
+      if (wrongShape) {
+        stagingStatus.textContent = "Not gsheet2json format. Won't import to GSheet.";
+        stagingStatus.title = stagingStatus.textContent;
+        stagingStatus.className = 'staging-status invalid';
+        stagingStatus.classList.add('copyable');
+        stagingImport.disabled = true;
+      } else {
+        stagingStatus.textContent = 'Valid gsheet2json.';
+        stagingStatus.title = stagingStatus.textContent;
+        stagingStatus.className = 'staging-status valid';
+        stagingStatus.classList.add('copyable');
+        stagingImport.disabled = false;
+      }
+      renderLineNumbers();
+      return !wrongShape;
+    } catch (e) {
+      const msg = (e && e.message) ? e.message : 'Parse error';
+      setValidationErrorUi(msg, v);
+      stagingStatus.textContent = `Invalid: ${msg}`;
+      stagingStatus.className = 'staging-status invalid';
+      stagingStatus.classList.add('copyable');
+      stagingImport.disabled = true;
+      renderLineNumbers();
+      return false;
+    }
+  }
+  stagingTextarea.addEventListener('input', function() {
+    stagingSource = stagingSource || 'pasted JSON';
+    setStagingPendingState();
+    scheduleStagingValidation();
+  });
+  stagingTextarea.addEventListener('paste', function() {
+    // Defer so we read the updated value
+    setTimeout(function() {
+      setStagingPendingState();
+      scheduleStagingValidation();
+    }, 0);
+  });
+
+  stagingClear.onclick = function() {
+    stopDelayedValidation();
+    stagingTextarea.value = '';
+    stagingSource = '';
+    validateStaging();
+    stagingTextarea.focus();
+  };
+  stagingStatus.onclick = function(ev) {
+    const text = stagingStatus.textContent || '';
+    if (!text || text === '\u2014') return;
+    const x = ev.clientX;
+    const y = ev.clientY;
+    // When there's a parse error, jump to it in the textarea before copying
+    // so the user can start fixing it without scrolling around by hand.
+    if (stagingParseError && stagingParseError.line) {
+      scrollErrorIntoView();
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function() {
+        showToast('Copied to clipboard', x, y);
+      }).catch(function() {
+        showToast('Could not copy', x, y);
+      });
+    } else {
+      showToast('Clipboard unavailable', x, y);
+    }
+  };
+
+  var activityFlashTimer = null;
+  function showImportedSuccessUi() {
+    stagingStatus.textContent = 'JSON Imported.';
+    stagingStatus.title = 'JSON Imported.';
+    stagingStatus.className = 'staging-status valid copyable';
+    applyStagingHeight(STAGING_MIN_H);
+    if (activityPanel) {
+      if (activityFlashTimer) {
+        clearTimeout(activityFlashTimer);
+        activityFlashTimer = null;
+      }
+      activityPanel.classList.remove('flash-imported');
+      // Force a reflow so the animation restarts on rapid successive imports.
+      void activityPanel.offsetWidth;
+      activityPanel.classList.add('flash-imported');
+      activityFlashTimer = setTimeout(function() {
+        activityPanel.classList.remove('flash-imported');
+        activityFlashTimer = null;
+      }, 3000);
+    }
+  }
+
+  stagingImport.onclick = function() {
+    stopDelayedValidation();
+    if (!validateStaging()) return;
+    const json = stagingTextarea.value;
+    const src = stagingSource || 'pasted JSON';
+    const sid = newSessionId();
+    startStatusPolled(sid, `Importing ${src}\u2026`);
+    setTilesBusy(true);
+    stagingImport.disabled = true;
+    stagingClear.disabled = true;
+    google.script.run
+      .withSuccessHandler(function(res) {
+        setTilesBusy(false);
+        stagingClear.disabled = false;
+        if (res && res.ok) {
+          finishStatus();
+          activityEntry({
+            ok: true,
+            title: `Imported ${src}`,
+            subtitle: res.tabName ? `New tab: ${res.tabName}` : undefined
+          });
+          stagingTextarea.value = '';
+          stagingSource = '';
+          validateStaging();
+          showImportedSuccessUi();
+        } else {
+          abortStatus();
+          const msg = (res && res.message) || 'Import failed';
+          activityEntry({ ok: false, title: 'Import failed', error: msg });
+          validateStaging(); // re-enable Import
+        }
+      })
+      .withFailureHandler(function(err) {
+        setTilesBusy(false);
+        stagingClear.disabled = false;
+        abortStatus();
+        const msg = (err && err.message) ? err.message : 'Import failed';
+        activityEntry({ ok: false, title: 'Import failed', error: msg });
+        validateStaging();
+      })
+      .gsheet2json_handleCommand('runImportJsonToSheet', { json: json, sessionId: sid });
+  };
+
+  /* ════════════════════════════════════════════════════════════════════════
+     Drive picker (From Drive)
+     ════════════════════════════════════════════════════════════════════════ */
+  var drivePicker  = document.getElementById('drivePicker');
+  var pickerClose  = document.getElementById('pickerClose');
+  var pickerFilter = document.getElementById('pickerFilter');
+  var pickerList   = document.getElementById('pickerList');
+  var hiddenToggle = document.getElementById('hiddenToggle');
+  var hiddenList   = document.getElementById('hiddenList');
+
+  var driveFiles = null;
+  var driveDuplicateNames = null;
+  var currentSettings = {
+    ignoredDriveFileNames: [],
+    ignoredDriveFileIds: [],
+    ignoredDriveFolderNames: [],
+    ignoredDriveFolderIds: []
+  };
+
+  tileImportDrive.onclick = function() {
+    if (drivePicker.classList.contains('visible')) {
+      closeDrivePicker();
+      return;
+    }
+    openDrivePicker();
+  };
+  pickerClose.onclick = closeDrivePicker;
+
+  function openDrivePicker() {
+    drivePicker.classList.add('visible');
+    tileImportDrive.classList.add('active');
+    pickerFilter.value = '';
+    setTimeout(function() { pickerFilter.focus(); autosizeStaging(); }, 10);
+    renderPicker();
+    loadDriveFiles();
+  }
+  function closeDrivePicker() {
+    drivePicker.classList.remove('visible');
+    tileImportDrive.classList.remove('active');
+    closeRowMenus();
+    autosizeStaging();
+  }
+  function loadDriveFiles() {
+    pickerList.innerHTML = '<div class="picker-msg loading">Loading\u2026</div>';
+    startStatus('Loading Drive files\u2026', 'slow');
+    google.script.run
+      .withSuccessHandler(function(files) {
+        driveFiles = files || [];
+        computeDuplicateNames();
+        renderPicker();
+        finishStatus();
+      })
+      .withFailureHandler(function(err) {
+        driveFiles = [];
+        const errMsg = err && err.message ? escapeHtml(err.message) : 'Error loading files';
+        pickerList.innerHTML = `<div class="picker-msg" style="color:var(--md-sys-color-error)">${errMsg}</div>`;
+        abortStatus();
+      })
+      .gsheet2json_handleCommand('getJsonFilesInDrive');
+  }
+  function computeDuplicateNames() {
+    const counts = {};
+    if (!driveFiles) return;
+    for (let i = 0; i < driveFiles.length; i++) {
+      const n = driveFiles[i].name;
+      counts[n] = (counts[n] || 0) + 1;
+    }
+    driveDuplicateNames = {};
+    for (const k in counts) if (counts[k] > 1) driveDuplicateNames[k] = true;
+  }
+  function renderPicker() {
+    if (!driveFiles) return;
+    const q = pickerFilter.value.trim().toLowerCase();
+    let filtered = driveFiles;
+    if (q) {
+      filtered = driveFiles.filter(function(f) {
+        return f.name.toLowerCase().indexOf(q) !== -1 ||
+               (f.folderName && f.folderName.toLowerCase().indexOf(q) !== -1);
+      });
+    }
+    pickerList.innerHTML = '';
+    if (filtered.length === 0) {
+      pickerList.innerHTML = `<div class="picker-msg">${q ? 'No matches.' : 'No .json files found in the last 90 days.'}</div>`;
+    } else {
+      filtered.forEach(function(f) { pickerList.appendChild(renderPickerRow(f)); });
+    }
+    renderHiddenList();
+  }
+  function renderPickerRow(f) {
+    const row = document.createElement('div');
+    row.className = 'picker-row';
+
+    const nameWrap = document.createElement('div');
+    nameWrap.className = 'pr-name-wrap';
+    const nameEl = document.createElement('div');
+    nameEl.className = 'pr-name';
+    nameEl.textContent = f.name;
+    nameWrap.appendChild(nameEl);
+    const folderEl = document.createElement('div');
+    folderEl.className = 'pr-folder';
+    const folderLabel = f.folderName ? f.folderName : '(My Drive)';
+    const sizeLabel = f.sizeBytes ? ` \u00b7 ${formatBytes(f.sizeBytes)}` : '';
+    folderEl.textContent = `${folderLabel}${sizeLabel}`;
+    nameWrap.appendChild(folderEl);
+    row.appendChild(nameWrap);
+
+    const actions = document.createElement('div');
+    actions.className = 'pr-actions';
+    const menuBtn = document.createElement('button');
+    menuBtn.type = 'button';
+    menuBtn.className = 'icon-btn small';
+    menuBtn.setAttribute('aria-label', 'More');
+    menuBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+      '<circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>';
+    menuBtn.onclick = function(e) {
+      e.stopPropagation();
+      // Toggle: if this row's menu is already open, close it. Otherwise close
+      // any other open menus and open this one.
+      const alreadyOpen = menu.classList.contains('open');
+      closeRowMenus();
+      if (!alreadyOpen) menu.classList.add('open');
+    };
+
+    const menu = buildHideMenu(f);
+    actions.appendChild(menuBtn);
+    actions.appendChild(menu);
+    row.appendChild(actions);
+
+    row.onclick = function(e) {
+      if (actions.contains(e.target)) return;
+      importFromDriveFile(f);
+    };
+    return row;
+  }
+  /**
+   * Build the per-row Hide menu as toggleable tag chips:
+   *   Hide: [file] [folder] [all] [Done]
+   * Tag selection state is held only on the DOM nodes; nothing is applied
+   * until [Done] is clicked. Click-away or kebab-toggle just closes (no apply).
+   */
+  function buildHideMenu(f) {
+    const menu = document.createElement('div');
+    menu.className = 'pr-menu';
+
+    const prefix = document.createElement('span');
+    prefix.className = 'pr-menu-prefix';
+    prefix.textContent = 'Hide:';
+    menu.appendChild(prefix);
+
+    const fileTag = makeHideTag('file', 'file');
+    menu.appendChild(fileTag);
+
+    let folderTag = null;
+    if (f.folderId && f.folderName) {
+      folderTag = makeHideTag('folder', 'folder');
+      menu.appendChild(folderTag);
+    }
+
+    const allTag = makeHideTag('all', 'all');
+    menu.appendChild(allTag);
+
+    const doneBtn = document.createElement('button');
+    doneBtn.type = 'button';
+    doneBtn.className = 'pr-tag pr-tag-done';
+    doneBtn.textContent = 'Done';
+    doneBtn.onclick = function(e) {
+      e.stopPropagation();
+      const fileSel   = fileTag.classList.contains('selected');
+      const folderSel = folderTag && folderTag.classList.contains('selected');
+      const allSel    = allTag.classList.contains('selected');
+      if (!fileSel && !folderSel) {
+        closeRowMenus();
+        return;
+      }
+      applyIgnore(f, { file: fileSel, folder: folderSel, all: allSel });
+    };
+    menu.appendChild(doneBtn);
+
+    // Stop propagation so click-away listener doesn't close while user is
+    // toggling tags inside the menu.
+    menu.addEventListener('click', function(e) { e.stopPropagation(); });
+    return menu;
+  }
+  function makeHideTag(kind, label) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pr-tag';
+    btn.dataset.kind = kind;
+    btn.textContent = label;
+    btn.onclick = function(e) {
+      e.stopPropagation();
+      btn.classList.toggle('selected');
+    };
+    return btn;
+  }
+  function applyIgnore(f, sel) {
+    // Build the list of (cmd, payload) pairs. file+all → name; file+!all → id;
+    // same for folder. If neither is selected, no-op (Done already handled).
+    const ops = [];
+    if (sel.file) {
+      if (sel.all) ops.push({ cmd: 'ignoreDriveFileName', payload: { name: f.name } });
+      else         ops.push({ cmd: 'ignoreDriveFileId',   payload: { id: f.id, name: f.name } });
+    }
+    if (sel.folder) {
+      if (sel.all) ops.push({ cmd: 'ignoreDriveFolderName', payload: { name: f.folderName } });
+      else         ops.push({ cmd: 'ignoreDriveFolderId',   payload: { id: f.folderId, name: f.folderName } });
+    }
+    if (ops.length === 0) { closeRowMenus(); return; }
+
+    closeRowMenus();
+    // Optimistic in-memory removal so the picker updates immediately.
+    if (driveFiles) {
+      driveFiles = driveFiles.filter(function(x) {
+        if (sel.file && sel.all  && x.name === f.name) return false;
+        if (sel.file && !sel.all && x.id === f.id) return false;
+        if (sel.folder && sel.all  && (x.folderName || '') === (f.folderName || '')) return false;
+        if (sel.folder && !sel.all && x.folderId === f.folderId) return false;
+        return true;
+      });
+    }
+    computeDuplicateNames();
+    renderPicker();
+
+    // Run the server commands sequentially so the final settings reflect all ops.
+    function runNext(i) {
+      if (i >= ops.length) return;
+      const op = ops[i];
+      google.script.run
+        .withSuccessHandler(function(settings) {
+          currentSettings = settings;
+          if (i === ops.length - 1) renderHiddenList();
+          runNext(i + 1);
+        })
+        .withFailureHandler(function() { runNext(i + 1); })
+        .gsheet2json_handleCommand(op.cmd, op.payload);
+    }
+    runNext(0);
+  }
+  function unignore(kind, value) {
+    // Optimistic: remove from local settings copy + re-render hidden list now,
+    // so the row disappears immediately even though the server roundtrip and
+    // subsequent loadDriveFiles() can take a moment.
+    if (kind === 'fileName') {
+      currentSettings.ignoredDriveFileNames = (currentSettings.ignoredDriveFileNames || [])
+        .filter(function(n) { return n !== value; });
+    } else if (kind === 'fileId') {
+      currentSettings.ignoredDriveFileIds = (currentSettings.ignoredDriveFileIds || [])
+        .filter(function(r) { return r.id !== value; });
+    } else if (kind === 'folderName') {
+      currentSettings.ignoredDriveFolderNames = (currentSettings.ignoredDriveFolderNames || [])
+        .filter(function(n) { return n !== value; });
+    } else if (kind === 'folderId') {
+      currentSettings.ignoredDriveFolderIds = (currentSettings.ignoredDriveFolderIds || [])
+        .filter(function(r) { return r.id !== value; });
+    }
+    renderHiddenList();
+    startStatus('Unhiding\u2026', 'fast');
+    google.script.run
+      .withSuccessHandler(function(settings) {
+        currentSettings = settings;
+        finishStatus();
+        loadDriveFiles();
+      })
+      .withFailureHandler(function() { abortStatus(); })
+      .gsheet2json_handleCommand('unignoreDriveEntry', { kind: kind, value: value });
+  }
+  function closeRowMenus() {
+    const menus = pickerList.querySelectorAll('.pr-menu.open');
+    for (let i = 0; i < menus.length; i++) menus[i].classList.remove('open');
+  }
+  document.addEventListener('click', function(e) {
+    if (!drivePicker.classList.contains('visible')) return;
+    if (!e.target.closest('.pr-actions')) closeRowMenus();
+    const btn = e.target.closest('button');
+    // Skip tileImportDrive: its own onclick already toggles open/close, and
+    // letting this handler also fire would close the picker on the same click
+    // that just opened it.
+    if (btn && !drivePicker.contains(btn) && btn !== tileImportDrive) closeDrivePicker();
+  });
+  pickerFilter.addEventListener('input', renderPicker);
+
+  function renderHiddenList() {
+    const foot = drivePicker.querySelector('.picker-foot');
+    const names = currentSettings.ignoredDriveFileNames || [];
+    const files = currentSettings.ignoredDriveFileIds   || [];
+    const folderNames = currentSettings.ignoredDriveFolderNames || [];
+    const folders = currentSettings.ignoredDriveFolderIds || [];
+    const total = names.length + files.length + folderNames.length + folders.length;
+    if (total === 0) {
+      hiddenToggle.hidden = true;
+      hiddenList.classList.remove('visible');
+      if (foot) foot.classList.remove('expanded');
+      hiddenList.innerHTML = '';
+      hiddenList.style.height = '';
+      const f0 = drivePicker.querySelector('.picker-filter');
+      const l0 = document.getElementById('pickerList');
+      if (f0) f0.style.display = '';
+      if (l0) l0.style.display = '';
+      return;
+    }
+    hiddenToggle.hidden = false;
+    const open = hiddenList.classList.contains('visible');
+    if (foot) foot.classList.toggle('expanded', open);
+    hiddenToggle.classList.toggle('expanded', open);
+    // Arrow on the LEFT of the label. Right-pointing chevron is rotated 90°
+    // via CSS when .expanded so it points down — standard disclosure.
+    hiddenToggle.innerHTML =
+      `<svg class="hidden-toggle-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l8 6-8 6z"/></svg>${open ? 'Hide' : 'Show'} hidden (${total})`;
+    hiddenList.innerHTML = '';
+    names.forEach(function(n) {
+      hiddenList.appendChild(renderHiddenRow('file-name', 'Files named', n, null, 'fileName', n));
+    });
+    files.forEach(function(r) {
+      const url = `https://drive.google.com/file/d/${r.id}/view`;
+      hiddenList.appendChild(renderHiddenRow('file', 'File', r.name || r.id, url, 'fileId', r.id));
+    });
+    folderNames.forEach(function(n) {
+      hiddenList.appendChild(renderHiddenRow('folder-name', 'Folders named', n, null, 'folderName', n));
+    });
+    folders.forEach(function(r) {
+      const url = `https://drive.google.com/drive/folders/${r.id}`;
+      hiddenList.appendChild(renderHiddenRow('folder', 'Folder', r.name || r.id, url, 'folderId', r.id));
+    });
+  }
+  function renderHiddenRow(cls, kindLabel, displayText, url, unignoreKind, unignoreValue) {
+    const row = document.createElement('div');
+    row.className = 'hidden-row';
+    const kind = document.createElement('span');
+    kind.className = 'hr-kind';
+    kind.textContent = kindLabel;
+    row.appendChild(kind);
+
+    const textWrap = document.createElement('span');
+    textWrap.className = 'hr-text';
+    if (url) {
+      const a = document.createElement('a');
+      a.href = url; a.target = '_blank'; a.rel = 'noopener';
+      a.textContent = displayText;
+      textWrap.appendChild(a);
+    } else {
+      textWrap.textContent = displayText;
+    }
+    row.appendChild(textWrap);
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'hr-unhide';
+    btn.textContent = 'Unhide';
+    btn.onclick = function() { unignore(unignoreKind, unignoreValue); };
+    row.appendChild(btn);
+    return row;
+  }
+  hiddenToggle.onclick = function() {
+    const willClose = hiddenList.classList.contains('visible');
+    hiddenList.classList.toggle('visible');
+    // Closing the hidden-list must also restore picker-filter and picker-list
+    // in case an earlier extreme-grow had set them to display:none.
+    if (willClose) {
+      const f = drivePicker.querySelector('.picker-filter');
+      const l = document.getElementById('pickerList');
+      if (f) f.style.display = '';
+      if (l) l.style.display = '';
+      hiddenList.style.height = '';
+    }
+    renderHiddenList();
+  };
+
+  /**
+   * Clicking a Drive row no longer imports directly — it fetches the file
+   * content and loads it into the staging textarea for review. The user
+   * reviews/edits and clicks Import to commit.
+   */
+  function importFromDriveFile(f) {
+    closeDrivePicker();
+    startStatus(`Loading "${f.name}" from Drive\u2026`, 'slow');
+    setTilesBusy(true);
+    google.script.run
+      .withSuccessHandler(function(info) {
+        setTilesBusy(false);
+        finishStatus();
+        stagingSource = f.name + (f.folderName ? ` (${f.folderName})` : '');
+        stagingTextarea.value = info && info.content ? info.content : '';
+        validateStaging();
+        growStagingToFitContent();
+        stagingTextarea.focus();
+      })
+      .withFailureHandler(function(err) {
+        setTilesBusy(false);
+        abortStatus();
+        const msg = (err && err.message) ? err.message : 'Load failed';
+        activityEntry({ ok: false, title: `Could not load "${f.name}" from Drive`, error: msg });
+      })
+      .gsheet2json_handleCommand('getDriveFileInfo', f.id);
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     Gear menu + overlay panels
+     ════════════════════════════════════════════════════════════════════════ */
+  var gearBtn       = document.getElementById('gearBtn');
+  var overflowMenu  = document.getElementById('overflowMenu');
+  function openExternalUrl(url) {
+    if (!url) return;
+    const win = window.open(url, '_blank', 'noopener,noreferrer');
+    if (win) win.opener = null;
+  }
+
+  gearBtn.onclick = function(e) {
+    e.stopPropagation();
+    overflowMenu.classList.toggle('open');
+  };
+  document.addEventListener('click', function(e) {
+    if (!overflowMenu.contains(e.target) && e.target !== gearBtn) {
+      overflowMenu.classList.remove('open');
+    }
+  });
+  document.getElementById('menuAbout').onclick = function() {
+    overflowMenu.classList.remove('open');
+    openExternalUrl('https://gsheet2json.com');
+  };
+  document.getElementById('menuReport').onclick = function() {
+    overflowMenu.classList.remove('open');
+    openExternalUrl('https://g2j.support');
+  };
+  // Free-first launch: no upgrade button. Restore when paid tier ships.
+  // document.getElementById('aboutUpgrade').onclick = function() {
+  //   google.script.run
+  //     .withSuccessHandler(function(url) {
+  //       openExternalUrl(url);
+  //       google.script.run
+  //         .withSuccessHandler(function() {})
+  //         .withFailureHandler(function() {})
+  //         .gsheet2json_handleCommand('clearLicenseCache');
+  //     })
+  //     .withFailureHandler(function() {})
+  //     .gsheet2json_handleCommand('getUpgradeUrl');
+  // };
+
+  /* ════════════════════════════════════════════════════════════════════════
+     License / subscription -- DISABLED for free-first launch.
+     Restore the whole block (and the loadLicense() init call below, the
+     focus listener, and the aboutUpgrade click handler above) when the
+     paid tier ships.
+     ════════════════════════════════════════════════════════════════════════ */
+  // var licenseText     = document.getElementById('licenseText');
+  // var menuLicenseLine = document.getElementById('menuLicenseLine');
+  // var aboutUpgrade    = document.getElementById('aboutUpgrade');
+  // var currentLicense  = null;
+  //
+  // function applyLicenseUi() {
+  //   if (!currentLicense) {
+  //     licenseText.hidden = true;
+  //     menuLicenseLine.textContent = '';
+  //     aboutUpgrade.style.display = 'none';
+  //     return;
+  //   }
+  //   if (currentLicense.status === 'paid') {
+  //     licenseText.hidden = true;
+  //     menuLicenseLine.textContent = 'Subscribed';
+  //     aboutUpgrade.style.display = 'none';
+  //     setTilesLockedByLicense(false);
+  //   } else if (currentLicense.status === 'expired') {
+  //     licenseText.hidden = false;
+  //     licenseText.textContent = '';
+  //     var expiredLabel = document.createElement('span');
+  //     expiredLabel.className = 'expired';
+  //     expiredLabel.textContent = 'Trial expired';
+  //     var sep = document.createTextNode(' \u00b7 ');
+  //     var upgradeLink = document.createElement('a');
+  //     upgradeLink.href = '#';
+  //     upgradeLink.id = 'upgradeLink';
+  //     upgradeLink.textContent = 'Upgrade';
+  //     upgradeLink.onclick = function(e) { e.preventDefault(); aboutUpgrade.click(); };
+  //     licenseText.appendChild(expiredLabel);
+  //     licenseText.appendChild(sep);
+  //     licenseText.appendChild(upgradeLink);
+  //     menuLicenseLine.textContent = '';
+  //     var menuExpired = document.createElement('span');
+  //     menuExpired.className = 'expired';
+  //     menuExpired.textContent = 'Trial expired';
+  //     menuLicenseLine.appendChild(menuExpired);
+  //     aboutUpgrade.style.display = 'inline-flex';
+  //     setTilesLockedByLicense(true);
+  //   } else {
+  //     const days = currentLicense.daysLeft != null ? currentLicense.daysLeft : '?';
+  //     const label = `Trial: ${days} day${days === 1 ? '' : 's'} left`;
+  //     licenseText.hidden = false;
+  //     licenseText.textContent = label;
+  //     menuLicenseLine.textContent = label;
+  //     aboutUpgrade.style.display = 'inline-flex';
+  //     setTilesLockedByLicense(false);
+  //   }
+  // }
+  // function loadLicense() {
+  //   google.script.run
+  //     .withSuccessHandler(function(state) {
+  //       currentLicense = state;
+  //       applyLicenseUi();
+  //     })
+  //     .withFailureHandler(function() {})
+  //     .gsheet2json_handleCommand('getLicenseState');
+  // }
+  //
+  // window.addEventListener('focus', function() {
+  //   if (currentLicense && currentLicense.status !== 'paid') loadLicense();
+  // });
+
+  /* ════════════════════════════════════════════════════════════════════════
+     Onboarding + version
+     ════════════════════════════════════════════════════════════════════════ */
+  var onboardingEl  = document.getElementById('onboarding');
+  var btnGetStarted = document.getElementById('btnGetStarted');
+  var menuVersion   = document.getElementById('menuVersion');
+
+  function checkOnboarding() {
+    google.script.run
+      .withSuccessHandler(function(isFirst) {
+        if (isFirst) onboardingEl.classList.remove('hidden');
+        else triggerGlossAfterPaint();
+      })
+      .withFailureHandler(function() { triggerGlossAfterPaint(); })
+      .gsheet2json_handleCommand('isFirstRun');
+  }
+  btnGetStarted.onclick = function() {
+    onboardingEl.classList.add('hidden');
+    triggerGlossAfterPaint();
+    google.script.run
+      .withFailureHandler(function() {})
+      .gsheet2json_handleCommand('dismissOnboarding');
+  };
+  function triggerGlossAfterPaint() {
+    const els = document.querySelectorAll('.tile-gloss');
+    for (let i = 0; i < els.length; i++) els[i].classList.remove('gloss-run');
+    setTimeout(function() {
+      for (let i = 0; i < els.length; i++) els[i].classList.add('gloss-run');
+    }, 60);
+  }
+  function loadVersion() {
+    google.script.run
+      .withSuccessHandler(function(ver) {
+        if (ver) {
+          menuVersion.textContent = `v${ver}`;
+        }
+      })
+      .withFailureHandler(function() {})
+      .gsheet2json_handleCommand('getVersion');
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     Pending-action handoff from Sheets menu shortcuts
+     ════════════════════════════════════════════════════════════════════════ */
+  function consumePendingAction() {
+    google.script.run
+      .withSuccessHandler(function(action) {
+        if (!action) return;
+        setTimeout(function() {
+          if (action === 'import_local')        tileImportLocal.click();
+          else if (action === 'import_gdrive')  tileImportDrive.click();
+          else if (action === 'export_local')   tileExportLocal.click();
+          else if (action === 'export_gdrive')  tileExportDrive.click();
+        }, 120);
+      })
+      .withFailureHandler(function() {})
+      .gsheet2json_handleCommand('getPendingAction');
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     Settings (ignore-list snapshot for the Drive picker footer)
+     ════════════════════════════════════════════════════════════════════════ */
+  function loadSettings() {
+    google.script.run
+      .withSuccessHandler(function(s) { if (s) currentSettings = s; })
+      .withFailureHandler(function() {})
+      .gsheet2json_handleCommand('getSettings');
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     Tiny helpers
+     ════════════════════════════════════════════════════════════════════════ */
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function(c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  // Compact byte formatting for the picker's per-row size label. Uses 1 decimal
+  // below 10 of each unit (5.4 KB) and integer above (234 KB) to keep the second
+  // line visually short on a narrow sidebar.
+  function formatBytes(n) {
+    if (!n || n < 1) return '';
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) {
+      const kb = n / 1024;
+      return `${kb < 10 ? kb.toFixed(1) : Math.round(kb)} KB`;
+    }
+    const mb = n / (1024 * 1024);
+    return `${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB`;
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     Init
+     ════════════════════════════════════════════════════════════════════════ */
+  loadSettings();
+  // Free-first launch: no license UI. Restore when paid tier ships.
+  // loadLicense();
+  loadVersion();
+  loadActivity();
+  checkOnboarding();
+  consumePendingAction();
+  autosizeStaging();
+  renderLineNumbers();
+</script>

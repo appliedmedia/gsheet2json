@@ -1,0 +1,136 @@
+<!-- ── Onboarding overlay (first-run) ── -->
+<div id="onboarding" class="onboarding hidden">
+  <h2>Welcome to gsheet2json</h2>
+  <p>Import or export a sheet as JSON in one click. Formatting, validations, formulas, merges, and font colors round-trip cleanly.</p>
+  <!-- Free-first launch: no trial; restore when paid tier ships.
+  <p class="trial-note">You have 7 days to try all features.</p>
+  -->
+  <button type="button" id="btnGetStarted" class="btn btn-filled">Get Started</button>
+</div>
+
+<!-- ── Main sidebar ── -->
+<div class="sidebar" id="sidebar">
+  <div class="accent-strip" aria-hidden="true"></div>
+
+  <!-- Status strip (hidden when idle) -->
+  <div id="statusStrip" class="status-strip" aria-live="polite">
+    <div class="status-track"><div id="statusFill" class="status-fill"></div></div>
+    <div class="status-meta">
+      <span id="statusMessage" class="status-message">Working&hellip;</span>
+      <span id="statusPercent" class="status-percent">0%</span>
+    </div>
+  </div>
+
+  <!-- Tile row: 2 cards (Import, Export); each card holds a folder (local)
+       and cloud (Drive) icon button. -->
+  <div class="tile-row" role="group" aria-label="Actions">
+    <div class="tile-card tile-gloss">
+      <svg class="tile-corner-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm1 7V3.5L19.5 9H15zm-4 9v-3H8l4-4 4 4h-3v3h-2z"/></svg>
+      <span class="tile-heading">Import</span>
+      <div class="tile-icon-row">
+        <button type="button" class="tile-icon-btn" id="tileImportLocal" aria-label="Import from local file" title="Pick file">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+        </button>
+        <button type="button" class="tile-icon-btn" id="tileImportDrive" aria-label="Import from Google Drive" title="GDrive">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4c-2.79 0-5.21 1.58-6.43 3.89A5.5 5.5 0 0 0 6 19h13a4.5 4.5 0 0 0 .35-8.96z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="tile-card tile-gloss">
+      <svg class="tile-corner-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm1 7V3.5L19.5 9H15zm-2 2v3h3l-4 4-4-4h3v-3h2z"/></svg>
+      <span class="tile-heading">Export</span>
+      <div class="tile-icon-row">
+        <button type="button" class="tile-icon-btn" id="tileExportLocal" aria-label="Export to local file" title="Download">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm1 7V3.5L19.5 9H15zm-3 2v4.17l1.59-1.58L15 15l-3 3-3-3 1.41-1.41L11 15.17V11h1z"/></svg>
+        </button>
+        <button type="button" class="tile-icon-btn" id="tileExportDrive" aria-label="Export to Google Drive" title="GDrive">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4c-2.79 0-5.21 1.58-6.43 3.89A5.5 5.5 0 0 0 6 19h13a4.5 4.5 0 0 0 .35-8.96z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drive picker (inline, only visible when "From Drive" is active) -->
+  <div id="drivePicker" class="picker" role="dialog" aria-label="Pick a JSON file from Drive">
+    <div class="picker-head">
+      <span class="picker-title">Pick a JSON file</span>
+      <button type="button" id="pickerClose" class="icon-btn small" aria-label="Close">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+      </button>
+    </div>
+    <div class="picker-filter">
+      <input type="text" id="pickerFilter" placeholder="Filter by name or folder&hellip;" aria-label="Filter files by name or folder" />
+    </div>
+    <div id="pickerList" class="picker-list">
+      <div class="picker-msg loading">Loading&hellip;</div>
+    </div>
+    <div class="picker-foot">
+      <div id="hiddenList" class="hidden-list"></div>
+      <button type="button" id="hiddenToggle" hidden>Hidden items (0) &#9656;</button>
+    </div>
+  </div>
+
+  <!-- Staging: textarea + JSON validation + Import button -->
+  <div class="staging">
+    <div id="stagingEditor" class="staging-editor">
+      <div id="stagingGutter" class="staging-gutter" aria-hidden="true">1</div>
+      <textarea id="stagingTextarea" class="staging-textarea" spellcheck="false" wrap="off"></textarea>
+      <div id="stagingPlaceholder" class="staging-placeholder">
+        <div class="placeholder-line"><span class="placeholder-glyph glyph-up">&uarr;</span><span>Click Import / type/paste JSON</span></div>
+        <div class="placeholder-line"><span>then click</span><span class="placeholder-glyph glyph-play">&blacktriangleright;</span></div>
+      </div>
+      <div id="stagingErrorMarker" class="staging-error-marker" hidden></div>
+    </div>
+    <div class="staging-bar">
+      <span id="stagingStatus" class="staging-status">&mdash;</span>
+      <div class="staging-actions">
+        <button type="button" id="stagingClear" class="staging-btn icon-only" aria-label="Clear JSON" title="Clear JSON">&#x1F5D1;&#xFE0F;</button>
+        <button type="button" id="stagingImport" class="staging-btn primary icon-only" disabled aria-label="Import JSON" title="Import JSON">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div id="copyToast" class="toast" aria-live="polite">Copied to clipboard</div>
+  </div>
+
+  <!-- Activity feed -->
+  <div class="activity">
+    <div class="activity-header">
+      <span class="activity-title">Activity</span>
+      <button type="button" id="activityClearBtn" class="activity-clear icon-only" hidden aria-label="Clear all activity" title="Clear all activity">&#x1F5D1;&#xFE0F;</button>
+    </div>
+    <div id="activityList" class="activity-list">
+      <div class="activity-empty">No activity yet.<br>Upload, download,<br>load or save a JSON<br>to get started.</div>
+    </div>
+  </div>
+
+  <!-- Hidden local-file input for Upload -->
+  <input type="file" id="fileInput" accept=".json,application/json" style="display:none;" aria-label="Select JSON file" />
+
+  <!-- Footer: gear + trial-only license text -->
+  <div class="footer-bar" id="footerBar">
+    <button type="button" id="gearBtn" class="icon-btn small" aria-label="Settings and more">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54A.484.484 0 0 0 14.4 2h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L3.2 8.47a.49.49 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94L3.2 14.12a.49.49 0 0 0-.12.61L5 18.05c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg>
+    </button>
+    <span id="licenseText" class="license-text" hidden></span>
+
+    <!-- Gear menu -->
+    <div id="overflowMenu" class="overflow-menu" role="menu">
+      <button type="button" class="menu-item" id="menuAbout" title="https://gsheet2json.com">
+        <span>About</span>
+        <svg class="menu-item-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h6"/><polyline points="14 4 20 4 20 10"/><line x1="20" y1="4" x2="11" y2="13"/></svg>
+      </button>
+      <button type="button" class="menu-item" id="menuReport" title="https://g2j.support">
+        <span>Report an issue</span>
+        <svg class="menu-item-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h6"/><polyline points="14 4 20 4 20 10"/><line x1="20" y1="4" x2="11" y2="13"/></svg>
+      </button>
+      <div class="menu-divider"></div>
+      <div class="menu-foot">
+        <div>gsheet2json <span id="menuVersion">&mdash;</span></div>
+        <!-- Free-first launch: no license line. Restore when paid tier ships.
+        <div id="menuLicenseLine" class="menu-license">&mdash;</div>
+        -->
+      </div>
+    </div>
+  </div>
+</div>

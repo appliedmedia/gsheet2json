@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/types.ts",
+    "src/utils.ts",
+    "src/progress.ts",
+    "src/export.ts",
+    "src/import.ts",
+    "src/main.ts",
+    "src/settings.ts",
+    "src/licensing.ts",
+    "src/test_runner.ts"
+  ]
+}

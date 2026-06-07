@@ -1,0 +1,260 @@
+<style>
+  /* ==========================================================================
+     gsheet2json sidebar — Material Design 3 tokens + reusable components
+     Light theme only (v1). Designed for Google Sheets sidebar (~300px wide).
+     ========================================================================== */
+
+  :root {
+    /* M3 color tokens — primary blue + neutral surfaces */
+    --md-sys-color-primary: #0B57D0;
+    --md-sys-color-on-primary: #FFFFFF;
+    --md-sys-color-primary-container: #D3E3FD;
+    --md-sys-color-on-primary-container: #001D35;
+    --md-sys-color-secondary-container: #DAE2F9;
+    --md-sys-color-on-secondary-container: #131C2B;
+
+    --md-sys-color-surface: #FDFCFF;
+    --md-sys-color-surface-container-lowest: #FFFFFF;
+    --md-sys-color-surface-container-low: #F7F9FC;
+    --md-sys-color-surface-container: #F1F4F9;
+    --md-sys-color-surface-container-high: #ECEEF4;
+    --md-sys-color-surface-container-highest: #E6E8EE;
+    --md-sys-color-on-surface: #1A1C1E;
+    --md-sys-color-on-surface-variant: #43474E;
+    --md-sys-color-outline: #73777F;
+    --md-sys-color-outline-variant: #C3C6CF;
+
+    --md-sys-color-error: #BA1A1A;
+    --md-sys-color-on-error: #FFFFFF;
+    --md-sys-color-error-container: #FFDAD6;
+    --md-sys-color-on-error-container: #410002;
+
+    --md-sys-color-success: #1E6E2C;
+
+    /* M3 type scale (subset) */
+    --md-sys-typescale-title-medium: 600 14px/20px var(--md-font);
+    --md-sys-typescale-title-small: 600 13px/18px var(--md-font);
+    --md-sys-typescale-body-medium: 400 13px/18px var(--md-font);
+    --md-sys-typescale-body-small: 400 12px/16px var(--md-font);
+    --md-sys-typescale-label-large: 500 13px/18px var(--md-font);
+    --md-sys-typescale-label-medium: 500 12px/16px var(--md-font);
+    --md-sys-typescale-label-small: 500 11px/14px var(--md-font);
+
+    /* M3 shape */
+    --md-sys-shape-corner-xs: 4px;
+    --md-sys-shape-corner-sm: 8px;
+    --md-sys-shape-corner-md: 12px;
+    --md-sys-shape-corner-lg: 16px;
+    --md-sys-shape-corner-full: 9999px;
+
+    /* M3 motion — standard easing */
+    --md-sys-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+    --md-sys-motion-easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
+    --md-sys-motion-duration-short: 150ms;
+    --md-sys-motion-duration-medium: 220ms;
+    --md-sys-motion-duration-long: 300ms;
+
+    /* M3 elevation (subtle) */
+    --md-sys-elevation-1: 0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+    --md-sys-elevation-2: 0 1px 2px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.06);
+    --md-sys-elevation-3: 0 4px 8px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.06);
+
+    --md-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  /* ==========================================================================
+     Reset + base
+     ========================================================================== */
+  *, *::before, *::after { box-sizing: border-box; }
+  html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: transparent;
+    overflow: hidden;
+  }
+  body {
+    margin: 0;
+    padding: 0;
+    font: var(--md-sys-typescale-body-medium);
+    color: var(--md-sys-color-on-surface);
+    background: #C8CBD4;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 0 0 14px 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font-family: inherit; }
+  a {
+    color: var(--md-sys-color-primary);
+    text-decoration: none;
+  }
+  a:hover { text-decoration: underline; }
+
+  /* ==========================================================================
+     Buttons — M3 filled, tonal, outlined, text
+     ========================================================================== */
+  .btn {
+    position: relative;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: none;
+    border-radius: var(--md-sys-shape-corner-full);
+    padding: 10px 20px;
+    min-width: 64px;
+    font: var(--md-sys-typescale-label-large);
+    cursor: pointer;
+    transition:
+      background-color var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-standard),
+      box-shadow var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-standard),
+      transform 80ms var(--md-sys-motion-easing-standard);
+  }
+  .btn:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+  .btn:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+  }
+  .btn:not(:disabled):active { transform: scale(0.98); }
+
+  /* Filled (primary) */
+  .btn-filled {
+    background: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+    box-shadow: var(--md-sys-elevation-1);
+  }
+  .btn-filled:not(:disabled):hover {
+    background: #0A4DBA;
+    box-shadow: var(--md-sys-elevation-2);
+  }
+  .btn-filled:not(:disabled):active {
+    background: #093F9C;
+  }
+
+  /* Tonal (secondary container) */
+  .btn-tonal {
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+  }
+  .btn-tonal:not(:disabled):hover {
+    background: #C8D2E9;
+  }
+  .btn-tonal:not(:disabled):active {
+    background: #B6C2DD;
+  }
+
+  /* Outlined */
+  .btn-outlined {
+    background: transparent;
+    color: var(--md-sys-color-primary);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    padding: 9px 19px;
+  }
+  .btn-outlined:not(:disabled):hover {
+    background: rgba(11, 87, 208, 0.06);
+    border-color: var(--md-sys-color-outline);
+  }
+
+  /* Text */
+  .btn-text {
+    background: transparent;
+    color: var(--md-sys-color-primary);
+    padding: 8px 12px;
+    min-width: 0;
+  }
+  .btn-text:not(:disabled):hover {
+    background: rgba(11, 87, 208, 0.06);
+  }
+
+  /* Compact variant (chip-sized) */
+  .btn-compact {
+    padding: 6px 12px;
+    font: var(--md-sys-typescale-label-medium);
+    min-width: 0;
+  }
+
+  /* Ripple-ish radial highlight on press */
+  .btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(255,255,255,0.35) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 250ms var(--md-sys-motion-easing-standard);
+    pointer-events: none;
+  }
+  .btn-filled:not(:disabled):active::after { opacity: 1; }
+  .btn-tonal:not(:disabled):active::after,
+  .btn-outlined:not(:disabled):active::after,
+  .btn-text:not(:disabled):active::after {
+    background: radial-gradient(circle at center, rgba(11,87,208,0.18) 0%, transparent 60%);
+    opacity: 1;
+  }
+
+  /* One-shot gloss shimmer for primary CTA on first paint */
+  .btn-gloss::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -120%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(
+      100deg,
+      rgba(255,255,255,0) 0%,
+      rgba(255,255,255,0.45) 50%,
+      rgba(255,255,255,0) 100%
+    );
+    transform: skewX(-20deg);
+    pointer-events: none;
+  }
+  .btn-gloss.gloss-run::before {
+    animation: btn-gloss-sweep 1200ms var(--md-sys-motion-easing-standard) forwards;
+  }
+  @keyframes btn-gloss-sweep {
+    0%   { left: -120%; }
+    100% { left: 220%; }
+  }
+
+  /* ==========================================================================
+     Icon buttons (kebab, chevron, etc.)
+     ========================================================================== */
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--md-sys-color-on-surface-variant);
+    cursor: pointer;
+    transition: background-color var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-standard);
+  }
+  .icon-btn:hover {
+    background: rgba(0,0,0,0.06);
+    color: var(--md-sys-color-on-surface);
+  }
+  .icon-btn:active {
+    background: rgba(0,0,0,0.10);
+  }
+  .icon-btn svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+  }
+  .icon-btn.small { width: 28px; height: 28px; }
+  .icon-btn.small svg { width: 16px; height: 16px; }
+
+  /* Shared dropdown-in animation (used by overflow menus + overlay panels) */
+  @keyframes dropdown-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>

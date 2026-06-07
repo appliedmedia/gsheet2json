@@ -1,0 +1,30 @@
+{
+  "name": "gsheet2json",
+  "version": "1.1.1",
+  "type": "module",
+  "scripts": {
+    "build": "rm -rf out && mkdir -p out && tsc && for f in out/*.js; do mv \"$f\" \"${f%.js}.gs\"; done && cp src/appsscript.json src/styles.html src/index.html src/style-css.html src/layout.html src/app-js.html out/",
+    "build:gas": "rm -rf out && mkdir -p out && tsc -p tsconfig.gas.json && for f in out/*.js; do mv \"$f\" \"${f%.js}.gs\"; done && cp src/appsscript.gas.json out/appsscript.json && cp src/styles.html src/index.html src/style-css.html src/layout.html src/app-js.html out/",
+    "push": "npm run build && npx clasp push --force",
+    "deploy": "npm run push",
+    "test": "tsc -p tsconfig.test.json && NODE_OPTIONS='--import tsx/esm' cucumber-js --tags 'not @gas and not @pre-submit'",
+    "test:gas": "npm run build:gas && npx clasp push --force && NODE_OPTIONS='--import tsx/esm' cucumber-js --tags @gas",
+    "test:pre-submit": "tsc -p tsconfig.test.json && NODE_OPTIONS='--import tsx/esm' cucumber-js --tags 'not @gas'",
+    "test:all": "npm run test:pre-submit && npm run test:gas && npm run build",
+    "record:promo": "echo 'Open Claude Code and paste: scripts/record-session.md'"
+  },
+  "dependencies": {
+    "googleapis": "^144.0.0",
+    "dotenv": "^16.0.0"
+  },
+  "devDependencies": {
+    "@cucumber/cucumber": "^12.8.2",
+    "@google/clasp": "^3.2.0",
+    "@types/google-apps-script": "^2.0.8",
+    "@types/jsdom": "^28.0.1",
+    "jsdom": "^29.1.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "yaml": "^2.8.3"
+  }
+}

@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0F9D58"/>
+      <stop offset="100%" stop-color="#137333"/>
+    </linearGradient>
+    <linearGradient id="cell-grad" gradientUnits="userSpaceOnUse" x1="0" y1="17" x2="0" y2="55">
+      <stop offset="0%" stop-color="white"/>
+      <stop offset="100%" stop-color="#0000FF"/>
+    </linearGradient>
+    <linearGradient id="line-grad" gradientUnits="userSpaceOnUse" x1="0" y1="74" x2="0" y2="120">
+      <stop offset="0%" stop-color="white"/>
+      <stop offset="100%" stop-color="#0000FF"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded background -->
+  <rect width="128" height="128" rx="24" fill="url(#bg)"/>
+
+  <!-- Everything shifted up 2.5px -->
+  <g transform="translate(0,-4)">
+    <!-- Spreadsheet: outer frame with rounded corners -->
+    <rect x="14" y="14" width="43" height="45" rx="3" fill="rgba(255,255,255,0.25)"/>
+    <!-- 4 rows x 3 columns grid cells (sharp corners = spreadsheet cells) -->
+    <!-- Row 1 -->
+    <rect x="17" y="17" width="11" height="8" fill="url(#cell-grad)" opacity="0.9"/>
+    <rect x="30" y="17" width="11" height="8" fill="url(#cell-grad)" opacity="0.9"/>
+    <rect x="43" y="17" width="11" height="8" fill="url(#cell-grad)" opacity="0.9"/>
+    <!-- Row 2 -->
+    <rect x="17" y="27" width="11" height="8" fill="url(#cell-grad)" opacity="0.7"/>
+    <rect x="30" y="27" width="11" height="8" fill="url(#cell-grad)" opacity="0.7"/>
+    <rect x="43" y="27" width="11" height="8" fill="url(#cell-grad)" opacity="0.7"/>
+    <!-- Row 3 -->
+    <rect x="17" y="37" width="11" height="8" fill="url(#cell-grad)" opacity="0.5"/>
+    <rect x="30" y="37" width="11" height="8" fill="url(#cell-grad)" opacity="0.5"/>
+    <rect x="43" y="37" width="11" height="8" fill="url(#cell-grad)" opacity="0.5"/>
+    <!-- Row 4 -->
+    <rect x="17" y="47" width="11" height="8" fill="url(#cell-grad)" opacity="0.4"/>
+    <rect x="30" y="47" width="11" height="8" fill="url(#cell-grad)" opacity="0.4"/>
+    <rect x="43" y="47" width="11" height="8" fill="url(#cell-grad)" opacity="0.4"/>
+
+    <!-- Arrow 1: grid → JSON (down from grid, curve right, point right) -->
+    <path d="M36 64.25 L36 77.75 Q36 82.75 41 82.75 L66 82.75" stroke="#0a5c2f" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+    <path d="M58 76.75 L66 82.75 L58 88.75" stroke="#0a5c2f" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <!-- Arrow 2: JSON → grid (up from JSON top, curve left, point left) -->
+    <path d="M92 68.5 L92 41 Q92 36 87 36 L62 36" stroke="#0a5c2f" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+    <path d="M70 30 L62 36 L70 42" stroke="#0a5c2f" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+    <!-- JSON braces with gradiated lines between -->
+    <text x="76" y="92" font-family="monospace" font-weight="bold" font-size="32" fill="rgba(255,255,255,0.25)" text-anchor="middle">{</text>
+    <!-- Data lines: white → royal blue gradient -->
+    <rect x="85" y="74" width="14" height="6" rx="3" fill="url(#line-grad)" opacity="0.9"/>
+    <rect x="85" y="84" width="19" height="6" rx="3" fill="url(#line-grad)" opacity="0.75"/>
+    <rect x="85" y="94" width="13" height="6" rx="3" fill="url(#line-grad)" opacity="0.6"/>
+    <rect x="85" y="104" width="16" height="6" rx="3" fill="url(#line-grad)" opacity="0.5"/>
+    <rect x="85" y="114" width="10" height="6" rx="3" fill="url(#line-grad)" opacity="0.4"/>
+    <text x="114" y="116" font-family="monospace" font-weight="bold" font-size="32" fill="rgba(255,255,255,0.25)" text-anchor="middle">}</text>
+    <text x="10" y="119.5" font-family="Nunito, Arial Rounded MT Bold, Helvetica Rounded, Arial, sans-serif" font-weight="900" font-size="32" fill="white" stroke="white" stroke-width="0.3" paint-order="stroke fill"><tspan>g</tspan><tspan dx="-1">2</tspan><tspan dx="-0.25">j</tspan></text>
+  </g>
+</svg>

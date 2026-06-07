@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="220" height="140" viewBox="0 0 220 140">
+  <!-- Application Card Banner: 220x140, dark green background -->
+
+  <!-- Canvas: dark green -->
+  <rect x="0" y="0" width="220" height="140" fill="#0a3d22"/>
+
+  <!-- Left column: logo glyph 96x96 centered in 120x140 (top-left at 12,22) -->
+  <image href="logo-gsheet2json_2048x2048.png" x="12" y="22" width="96" height="96"/>
+
+  <!-- Right column: wordmark centered at x=170 (midpoint of 120..220), white -->
+  <text
+    x="170"
+    y="76"
+    font-family="Helvetica, Arial, sans-serif"
+    font-weight="bold"
+    font-size="15"
+    fill="white"
+    text-anchor="middle"
+    dominant-baseline="middle">gsheet2json</text>
+</svg>
