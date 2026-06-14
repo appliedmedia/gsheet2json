@@ -12,7 +12,7 @@ Verify all prereqs are true:
 
 * gsheet2json add-on **uninstalled** from the account. Uninstall at [workspace.google.com/marketplace/myapps](https://workspace.google.com/marketplace/myapps) → gsheet2json → Uninstall. Do this immediately before recording.
 * `.env.local` contains `YOUTUBE_REFRESH_TOKEN` (run `npx tsx scripts/get-youtube-token.ts` once if missing).
-* `client_secret.json` at `~/client_secret_334934718668-qvoloc3a6r20nbi9mbq9g0od0vaqk4g2.apps.googleusercontent.com.json`.
+* `YOUTUBE_TOKEN` env var set to `~/.g2j-youtube-credentials.json`.
 * No other screen recording is active.
 
 ---
@@ -25,7 +25,7 @@ Run the following steps in order. If any step exits non-zero, stop immediately a
 
 ```bash
 test -f .env.local && grep -q YOUTUBE_REFRESH_TOKEN .env.local || { echo "MISSING: .env.local or YOUTUBE_REFRESH_TOKEN"; exit 1; }
-test -f ~/client_secret_334934718668-qvoloc3a6r20nbi9mbq9g0od0vaqk4g2.apps.googleusercontent.com.json || { echo "MISSING: client_secret.json"; exit 1; }
+test -f "${YOUTUBE_TOKEN:-}" || { echo "MISSING: YOUTUBE_TOKEN env var or file not found"; exit 1; }
 mkdir -p tmp
 echo "Prereqs OK"
 ```

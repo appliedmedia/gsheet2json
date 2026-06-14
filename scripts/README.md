@@ -10,4 +10,4 @@ Build, QA, and release tooling. None of this ships inside the add-on; it support
 * `get-youtube-token.ts`: one-time helper to obtain a YouTube OAuth refresh token.
 * `upload-youtube.ts`: upload the finished video to YouTube as Unlisted.
 
-The YouTube scripts read credentials from `scripts/client_secret.json` and a `YOUTUBE_REFRESH_TOKEN` environment variable. Both are gitignored and must never be committed.
+The YouTube scripts read credentials via `YOUTUBE_TOKEN` (path to the Google OAuth credentials file) and `YOUTUBE_REFRESH_TOKEN`. Both must be set in the environment and never committed.

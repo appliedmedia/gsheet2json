@@ -9,12 +9,12 @@ PID_FILE="${TMP_DIR}/record.pid"
 OUTPUT_FILE="${TMP_DIR}/promo-raw.mp4"
 
 # Crop rectangle for the Chrome content area on the LG 5K display.
-# Window outer: x=0 y=31 w=1500 h=1500. Browser chrome height=121px.
-# Content area: x=0 y=152 w=1500 h=1379.
+# Window outer: x=0 y=31 w=1600 h=1700. Browser chrome=121px + "Claude debugging" infobar=26px = 147px total.
+# Content area: x=0 y=180 w=1600 h=1553 (screen y=31+147+2px buffer=180).
 CROP_X="${CROP_X:-0}"
-CROP_Y="${CROP_Y:-152}"
-CROP_W="${CROP_W:-1500}"
-CROP_H="${CROP_H:-1379}"
+CROP_Y="${CROP_Y:-180}"
+CROP_W="${CROP_W:-1600}"
+CROP_H="${CROP_H:-1553}"
 
 # Ensure tmp directory exists
 mkdir -p "${TMP_DIR}"
