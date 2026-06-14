@@ -3,7 +3,6 @@
 import { google } from 'googleapis';
 import * as http from 'http';
 import * as fs from 'fs';
-import * as os from 'os';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { randomBytes } from 'crypto';
@@ -12,8 +11,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 process.chdir(path.join(__dirname, '..'));
 
-const secretPath = process.env.CLIENT_SECRET_PATH ??
-  path.join(os.homedir(), 'client_secret_334934718668-qvoloc3a6r20nbi9mbq9g0od0vaqk4g2.apps.googleusercontent.com.json');
+const secretPath = process.env.CLIENT_SECRET_PATH;
+if (!secretPath) {
+  console.error('Error: CLIENT_SECRET_PATH env var is not set.');
+  process.exit(1);
+}
 
 interface ClientSecret {
   installed: {
