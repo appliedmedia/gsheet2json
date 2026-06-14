@@ -1,17 +1,20 @@
-<!-- scripts/record-session.md Copyright (c) 2026:appliedmedia. Licensed under Code Transparency v1 (see LICENSE). -->
+<!-- scripts/record-session-using.md Copyright (c) 2026:appliedmedia. Licensed under Code Transparency v1 (see LICENSE). -->
 
-# gsheet2json Promo Video: Full Recording Session
+# gsheet2json Promo Video — "Using": Full Recording Session
 
 Paste this entire file into a Claude Code session. Claude runs both the shell commands and the browser actor without any human interaction after the paste. End result: a YouTube Unlisted URL printed to the terminal.
+
+See `scripts/record-session-install.md` for the companion install + OAuth video.
 
 ## Before pasting
 
 Verify all prereqs are true:
 
 * gsheet2json add-on installed in Chrome (production listing or dev deployment).
-* Fixture spreadsheet open in a Chrome tab (any sheet with 10+ rows of data).
-* `scripts/client_secret.json` in place (one-time OAuth setup via `npx tsx scripts/get-youtube-token.ts`).
-* `.env.local` contains `YOUTUBE_REFRESH_TOKEN=<value>` from the one-time setup step.
+* gsheet2json authorization **revoked** at [myaccount.google.com/permissions](https://myaccount.google.com/permissions) → gsheet2json → Delete all — do this immediately before recording so the OAuth consent screen fires on first Open.
+* Fixture spreadsheet open: https://docs.google.com/spreadsheets/d/15E8LvrzXeDy3ruj9AoM29Bh987sv1CQSDUKRC7moduo
+* `.env.local` contains `YOUTUBE_REFRESH_TOKEN` (run `npx tsx scripts/get-youtube-token.ts` once if missing).
+* `client_secret.json` at `~/client_secret_334934718668-qvoloc3a6r20nbi9mbq9g0od0vaqk4g2.apps.googleusercontent.com.json`.
 * No other screen recording is active.
 
 ---
@@ -24,7 +27,7 @@ Run the following steps in order. If any step exits non-zero, stop immediately a
 
 ```bash
 test -f .env.local && grep -q YOUTUBE_REFRESH_TOKEN .env.local || { echo "MISSING: .env.local or YOUTUBE_REFRESH_TOKEN"; exit 1; }
-test -f scripts/client_secret.json || { echo "MISSING: scripts/client_secret.json"; exit 1; }
+test -f ~/client_secret_334934718668-qvoloc3a6r20nbi9mbq9g0od0vaqk4g2.apps.googleusercontent.com.json || { echo "MISSING: client_secret.json"; exit 1; }
 mkdir -p tmp
 echo "Prereqs OK"
 ```
@@ -39,9 +42,9 @@ Confirm the output says "Recording started" before proceeding. If it prints a Sc
 
 ### Step 3 — Browser actor (shot list)
 
-Read `scripts/browser-actor-prompt.md` and execute it step by step using the Claude-in-Chrome tools (`mcp__claude-in-chrome__*`). Follow every step, pacing note, and wait instruction in that file exactly.
+Read `scripts/browser-actor-prompt-using.md` and execute it step by step using the Claude-in-Chrome tools (`mcp__claude-in-chrome__*`). Follow every step, pacing note, and wait instruction in that file exactly.
 
-When `browser-actor-prompt.md` prints "SHOT LIST COMPLETE", proceed immediately to Step 4 — do NOT wait for any user input.
+When `browser-actor-prompt-using.md` prints "SHOT LIST COMPLETE", proceed immediately to Step 4 — do NOT wait for any user input.
 
 ### Step 4 — Stop screen recording
 
@@ -55,24 +58,24 @@ Confirm the output says "Recording stopped" and that `tmp/promo-raw.mp4` exists:
 test -f tmp/promo-raw.mp4 && ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1 tmp/promo-raw.mp4
 ```
 
-The duration should be approximately 78–90 seconds.
+The duration should be approximately 90–105 seconds.
 
 ### Step 5 — Edit
 
 ```bash
-./scripts/edit-promo.sh
+./scripts/edit-promo.sh tmp/promo-raw.mp4 tmp/promo-using-final.mp4
 ```
 
-Confirm `tmp/promo-final.mp4` exists and is approximately 78 seconds:
+Confirm `tmp/promo-using-final.mp4` exists and is approximately 92 seconds:
 
 ```bash
-ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1 tmp/promo-final.mp4
+ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1 tmp/promo-using-final.mp4
 ```
 
 ### Step 6 — Upload to YouTube
 
 ```bash
-npx tsx scripts/upload-youtube.ts tmp/promo-final.mp4
+npx tsx scripts/upload-youtube.ts tmp/promo-using-final.mp4
 ```
 
 Capture the printed `https://youtu.be/...` URL from stdout.
@@ -82,7 +85,7 @@ Capture the printed `https://youtu.be/...` URL from stdout.
 Print:
 
 ```text
-Done. YouTube URL: <the URL from Step 6>
+Done. YouTube URL (Using): <the URL from Step 6>
 ```
 
 ---
@@ -94,4 +97,4 @@ Done. YouTube URL: <the URL from Step 6>
 3. Save Draft.
 4. Note the published URL in your release tracking.
 
-<!-- end scripts/record-session.md -->
+<!-- end scripts/record-session-using.md -->

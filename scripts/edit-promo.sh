@@ -2,7 +2,7 @@
 # scripts/edit-promo.sh Copyright (c) 2026:appliedmedia. Licensed under Code Transparency v1 (see LICENSE).
 #
 # Lane 3: Edit Promo Video
-# Overlays title card (0-6s) and end card (68s+) onto promo video, trims to 78 seconds.
+# Overlays title card (0-6s), step labels, and end card (80s+) onto promo video, trims to 92 seconds.
 #
 # Usage:
 #   ./scripts/edit-promo.sh [INPUT] [OUTPUT]
@@ -43,10 +43,33 @@ fi
 OUTPUT_DIR="$(dirname "$OUTPUT")"
 mkdir -p "$OUTPUT_DIR"
 
-# Run ffmpeg to overlay cards and trim
+# Step label settings — white text, semi-transparent black box, top-left corner
+FONT="/System/Library/Fonts/Helvetica.ttc"
+LABEL_OPTS="fontfile=${FONT}:fontsize=42:fontcolor=white:box=1:boxcolor=black@0.55:boxborderw=14:x=40:y=40"
+
+# Run ffmpeg to overlay cards, step labels, and trim
+# Timeline:
+#   t=0–6    title card
+#   t=6–22   Step 0.5: OAuth authorization
+#   t=22–28  Step 1:   Sheet + sidebar
+#   t=28–44  Step 2:   Export
+#   t=44–54  Step 3:   JSON in Drive
+#   t=54–70  Step 4:   Import
+#   t=70–80  Step 5:   Activity log
+#   t=80+    end card
 ffmpeg -i "$INPUT" -i "$TITLE_CARD" -i "$END_CARD" \
-  -filter_complex "[1:v]scale=1920:1080[title];[2:v]scale=1920:1080[end];[0:v][title]overlay=enable='between(t,0,6)'[v1];[v1][end]overlay=enable='gte(t,68)'[out]" \
-  -map "[out]" -vcodec libx264 -crf 18 -preset medium -pix_fmt yuv420p -t 78 "$OUTPUT" -y
+  -filter_complex "
+    [1:v]scale=1920:1080[title];
+    [2:v]scale=1920:1080[end];
+    [0:v][title]overlay=enable='between(t,0,6)'[v1];
+    [v1][end]overlay=enable='gte(t,80)'[v2];
+    [v2]drawtext=${LABEL_OPTS}:text='Authorizing gsheet2json':enable='between(t,6,22)'[v3];
+    [v3]drawtext=${LABEL_OPTS}:text='Export to JSON':enable='between(t,28,44)'[v4];
+    [v4]drawtext=${LABEL_OPTS}:text='JSON in Google Drive':enable='between(t,44,54)'[v5];
+    [v5]drawtext=${LABEL_OPTS}:text='Import JSON to Sheet':enable='between(t,54,70)'[v6];
+    [v6]drawtext=${LABEL_OPTS}:text='Activity Log':enable='between(t,70,80)'[out]
+  " \
+  -map "[out]" -vcodec libx264 -crf 18 -preset medium -pix_fmt yuv420p -t 92 "$OUTPUT" -y
 
 echo "Successfully created $OUTPUT"
 

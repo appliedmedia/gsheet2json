@@ -156,3 +156,4 @@ tmp/
 
 # Test build output
 dist-test/
+.env.local

@@ -8,6 +8,14 @@ FIFO_PATH="${TMP_DIR}/record.fifo"
 PID_FILE="${TMP_DIR}/record.pid"
 OUTPUT_FILE="${TMP_DIR}/promo-raw.mp4"
 
+# Crop rectangle for the Chrome content area on the LG 5K display.
+# Window outer: x=0 y=31 w=1500 h=1500. Browser chrome height=121px.
+# Content area: x=0 y=152 w=1500 h=1379.
+CROP_X="${CROP_X:-0}"
+CROP_Y="${CROP_Y:-152}"
+CROP_W="${CROP_W:-1500}"
+CROP_H="${CROP_H:-1379}"
+
 # Ensure tmp directory exists
 mkdir -p "${TMP_DIR}"
 
@@ -25,8 +33,9 @@ start_recording() {
   # The earlier FIFO approach deadlocked: ffmpeg blocked opening the FIFO for read
   # until a writer appeared, so it never actually captured any frames.
   ffmpeg -nostdin -y -f avfoundation -framerate 30 -i "${DISPLAY_INDEX}" \
+    -vf "crop=${CROP_W}:${CROP_H}:${CROP_X}:${CROP_Y}" \
     -vcodec libx264 -crf 18 -preset ultrafast -pix_fmt yuv420p \
-    "${OUTPUT_FILE}" </dev/null >"${TMP_DIR}/ffmpeg.log" 2>&1 &
+    "${OUTPUT_FILE}"</dev/null >"${TMP_DIR}/ffmpeg.log" 2>&1 &
 
   local ffmpeg_pid=$!
 
@@ -81,6 +90,7 @@ duration_recording() {
   local duration=$1
 
   if ffmpeg -f avfoundation -framerate 30 -i "${DISPLAY_INDEX}" \
+    -vf "crop=${CROP_W}:${CROP_H}:${CROP_X}:${CROP_Y}" \
     -t "${duration}" -vcodec libx264 -crf 18 -preset ultrafast -pix_fmt yuv420p \
     "${OUTPUT_FILE}" 2>/dev/null; then
     echo "Recording completed (${duration}s)"
