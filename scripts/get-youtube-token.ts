@@ -11,9 +11,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 process.chdir(path.join(__dirname, '..'));
 
-const secretPath = process.env.CLIENT_SECRET_PATH;
+const secretPath = process.env.YOUTUBE_TOKEN;
 if (!secretPath) {
-  console.error('Error: CLIENT_SECRET_PATH env var is not set.');
+  console.error('Error: YOUTUBE_TOKEN env var is not set.');
   process.exit(1);
 }
 
