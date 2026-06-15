@@ -10,7 +10,7 @@
  * No import/export: Apps Script global scope.
  */
 
-const VERSION = "1.1.1";
+const VERSION = "0.0.0-dev"; // replaced at build time from package.json
 
 // ---------------------------------------------------------------------------
 // Menu
