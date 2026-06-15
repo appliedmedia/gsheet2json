@@ -1,4 +1,4 @@
-<!-- scripts/record-session-install.md Copyright (c) 2026:appliedmedia. Licensed under Code Transparency v1 (see LICENSE). -->
+<!-- scripts/record-session-install.md Copyright (c) 2005...2026-06-14.001:a@cov.in + Applied Media. All Rights Reserved. Do Not Duplicate. -->
 
 # gsheet2json Promo Video — "Install with OAuth": Full Recording Session
 
