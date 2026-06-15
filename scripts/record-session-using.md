@@ -2,7 +2,7 @@
 
 # gsheet2json Promo Video — "Using": Full Recording Session
 
-Paste this entire file into a Claude Code session. Claude runs both the shell commands and the browser actor without any human interaction after the paste. End result: a YouTube Unlisted URL printed to the terminal.
+Paste this entire file into a Claude Code session. Claude runs the shell commands and browser actor; the operator clicks Allow on the OAuth consent screen when prompted. End result: a YouTube Unlisted URL printed to the terminal.
 
 See `scripts/record-session-install.md` for the companion install + OAuth video.
 
@@ -13,7 +13,7 @@ Verify all prereqs are true:
 * gsheet2json add-on installed in Chrome (production listing or dev deployment).
 * gsheet2json authorization **revoked** at [myaccount.google.com/permissions](https://myaccount.google.com/permissions) → gsheet2json → Delete all — do this immediately before recording so the OAuth consent screen fires on first Open.
 * Fixture spreadsheet open: https://docs.google.com/spreadsheets/d/15E8LvrzXeDy3ruj9AoM29Bh987sv1CQSDUKRC7moduo
-* `.env.local` contains `YOUTUBE_REFRESH_TOKEN` (run `npx tsx scripts/get-youtube-token.ts` once if missing).
+* `YOUTUBE_REFRESH_TOKEN` env var set (run `npx tsx scripts/get-youtube-token.ts` once if missing — it auto-writes to `.env.local`).
 * `YOUTUBE_TOKEN` env var set to `~/.g2j-youtube-credentials.json`.
 * No other screen recording is active.
 
@@ -58,7 +58,7 @@ Confirm the output says "Recording stopped" and that `tmp/promo-raw.mp4` exists:
 test -f tmp/promo-raw.mp4 && ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1 tmp/promo-raw.mp4
 ```
 
-The duration should be approximately 90–105 seconds.
+The duration should be approximately 100–115 seconds.
 
 ### Step 5 — Edit
 

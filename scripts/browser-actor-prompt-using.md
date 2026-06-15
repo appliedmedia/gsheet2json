@@ -1,174 +1,145 @@
-<!-- scripts/browser-actor-prompt.md Copyright (c) 2026:appliedmedia. Licensed under Code Transparency v1 (see LICENSE). -->
+<!-- scripts/browser-actor-prompt-using.md Copyright (c) 2026:appliedmedia. Licensed under Code Transparency v1 (see LICENSE). -->
 
-# gsheet2json Promo Video: Browser Actor Prompt
+# gsheet2json Promo Video — "Using": Browser Actor Prompt
 
-Paste this entire file into a Claude Code session that has the Claude-in-Chrome extension active. Claude executes each step via browser automation. The operator runs `./scripts/record-screen.sh start` before pasting and `./scripts/record-screen.sh stop` after Claude prints "SHOT LIST COMPLETE".
+Claude executes each step via browser automation. The operator runs `./scripts/record-screen.sh start` before beginning and tells Claude when to stop.
 
-## Prereqs checklist (verify before pasting)
+See `scripts/record-session-using.md` for the full session wrapper.
 
-* gsheet2json add-on installed in the active Chrome session (production listing or sideloaded dev deployment).
-* Fixture spreadsheet open in a Chrome tab. URL: https://docs.google.com/spreadsheets/d/15E8LvrzXeDy3ruj9AoM29Bh987sv1CQSDUKRC7moduo (see `scripts/fixture-sheet.md`)
-* Chrome window maximized or set to 1352×896 via the resize step below.
-* `.env.local` has `YOUTUBE_REFRESH_TOKEN` set (for the upload step after recording).
-* `scripts/record-screen.sh start` already running (recording in progress).
-* **gsheet2json authorization has been revoked** so the OAuth consent screen fires on first Open. Revoke at [myaccount.google.com/permissions](https://myaccount.google.com/permissions) → find gsheet2json → Remove Access. Do this immediately before starting the recording.
+## Prereqs checklist (verify before starting)
+
+* gsheet2json add-on installed in Chrome.
+* Chrome window set to **1600×1700** at position **(0, 31)** on the LG 5K display (set via AX at session start per `fixture-sheet.md`).
+* Fixture spreadsheet open: https://docs.google.com/spreadsheets/d/15E8LvrzXeDy3ruj9AoM29Bh987sv1CQSDUKRC7moduo
+* `YOUTUBE_REFRESH_TOKEN` and `YOUTUBE_TOKEN` env vars set.
+* **gsheet2json authorization revoked** so the OAuth consent screen fires on first Open. Revoke at [myaccount.google.com/permissions](https://myaccount.google.com/permissions) → gsheet2json → Remove Access. Do this immediately before recording.
+* No other screen recording active.
 
 ---
 
 ## Step 0 — Setup (Claude executes)
 
-Use `mcp__claude-in-chrome__tabs_context_mcp` to get current tabs. Identify the fixture spreadsheet tab by URL (docs.google.com/spreadsheets). If not found, instruct the user to open the fixture sheet and re-paste this prompt.
+Use `mcp__claude-in-chrome__tabs_context_mcp` to get current tabs. Identify the fixture spreadsheet tab. If not found, stop and tell the operator to open it.
 
-Use `mcp__claude-in-chrome__resize_window` to set the Chrome window to 1352×896.
+Set Chrome window to **1600×1700** at position **(0, 31)** via the Swift AX position/size API.
 
-Pause 2 seconds after resize.
-
----
-
-## Step 0.5 — Authorization flow (t=0:06–0:22)
-
-Click the Extensions menu in the Google Sheets menu bar.
-
-Wait for the Extensions dropdown to open (up to 3 seconds).
-
-Click "gsheet2json" in the dropdown.
-
-Wait for the gsheet2json submenu to appear.
-
-Click "Open" in the submenu.
-
-Because authorization was revoked in prereqs, Google's OAuth consent screen will appear. Wait up to 5 seconds for it.
-
-Pause 3 seconds on the consent screen — the camera must see "gsheet2json wants to access your Google Account" clearly.
-
-Click "Allow."
-
-Wait up to 8 seconds for the sidebar to open (post-auth redirect takes longer than normal open).
-
-Pause 2 seconds so the camera sees the fully authorized, open sidebar.
-
-**Shot boundary note:** ~22 seconds elapsed. The OAuth consent screen and the Allow click are now on tape.
+Pause 2 seconds.
 
 ---
 
-## Step 1 — Sheet visible with open sidebar (t=0:22–0:28)
+## Step 1 — Open sidebar + OAuth (t=0:06–0:28)
 
-Navigate to the fixture spreadsheet tab (sidebar remains open from Step 0.5). Confirm the sheet is visible with data in cells and the sidebar is docked on the right.
+Click the **Extensions** menu in the Google Sheets menu bar.
 
-Pause 4 seconds so the camera sees the sheet and sidebar together.
+Wait up to 3 seconds for the dropdown to open.
 
-**Shot boundary note:** ~28 seconds elapsed. Title card overlay covers t=0–6 in post.
+Click **gsheet2json** → **Open**.
 
----
+Because authorization was revoked, Google's OAuth consent screen will appear. Wait up to 5 seconds for it.
 
-## Step 2 — Export (t=0:28–0:44)
+Pause 3 seconds so the camera sees the consent screen clearly.
 
-In the gsheet2json sidebar, click the Export button.
+**STOP — tell the operator:** "Please click Allow on the OAuth consent screen."
 
-Wait up to 3 seconds for the export name dialog or Drive save dialog to appear.
+Wait up to 10 seconds for the sidebar to open after the operator clicks Allow.
 
-If a filename input appears: type a filename (e.g. `promo-export`), then confirm/save.
+Pause 3 seconds so the camera sees the open, authorized sidebar.
 
-Wait up to 8 seconds for the export confirmation (activity log entry or success toast). Do NOT proceed until the confirmation is visible — not a spinner.
-
-Pause 3 seconds so the camera sees the Drive save confirmation clearly.
-
-**Shot boundary note:** ~44 seconds elapsed.
+**Shot boundary note:** ~28 seconds elapsed.
 
 ---
 
-## Step 3 — JSON preview cut (t=0:44–0:54)
+## Step 2 — Sheet + sidebar overview (t=0:28–0:36)
 
-Open a new tab and navigate to Google Drive (drive.google.com).
+Confirm the sheet is visible with the Income Statement data and the sidebar is docked on the right showing the Import/Export cards.
 
-Wait up to 4 seconds for Drive to load.
+Pause 6 seconds so the camera takes in the full picture — sheet data on the left, sidebar on the right.
 
-Locate the most recently modified JSON file (the export from Step 2).
-
-Click on it to open the preview or viewer.
-
-Wait up to 3 seconds for the file content to appear.
-
-Press `Cmd++` twice to zoom in so the JSON structure is readable on screen.
-
-Scroll slowly through the JSON content (2–3 scroll steps, 1 second apart).
-
-Pause 2 seconds at the end of the scroll.
-
-**Shot boundary note:** ~54 seconds elapsed.
+**Shot boundary note:** ~36 seconds elapsed.
 
 ---
 
-## Step 4 — Import (t=0:54–1:10)
+## Step 3 — Export to Google Drive (t=0:36–0:56)
 
-Navigate back to the fixture spreadsheet tab.
+In the sidebar, click the **Export to Drive** button (cloud icon under EXPORT).
 
-In the gsheet2json sidebar, click the Import button.
+Wait up to 10 seconds for the export to complete and an activity log entry to appear. Do NOT proceed until the activity entry is visible — not a spinner.
 
-Wait up to 3 seconds for the Import panel to open.
+Pause 4 seconds so the camera sees the activity entry confirming the Drive save.
 
-Click "Paste JSON" or equivalent input area.
+**Shot boundary note:** ~56 seconds elapsed.
 
-Paste a short valid JSON snippet (use this literal text — it represents a minimal round-trip payload):
+---
 
-```json
-[{"row":1,"values":["Name","Score","Active"]},{"row":2,"values":["Alice","92","true"]},{"row":3,"values":["Bob","87","false"]}]
-```
+## Step 4 — Show the JSON file in Drive (t=0:56–1:10)
 
-Click the Import / Apply button.
+Click the **folder icon** on the activity log entry to open the file's location in Google Drive in a new tab.
 
-Wait up to 6 seconds for the rows to land in the sheet (Drive + Sheets API call).
+Wait up to 5 seconds for Drive to open.
 
-Scroll the sheet to row 1 so the imported rows are prominently visible.
+Click on the exported `.g2j.json` file to open its preview.
 
-Pause 3 seconds so the camera sees the populated cells clearly.
+Wait up to 3 seconds for the preview to render.
+
+Scroll slowly through the JSON (3 scroll steps, 1.5 seconds apart) so the viewer can see the structure.
+
+Pause 2 seconds at the bottom.
 
 **Shot boundary note:** ~70 seconds elapsed.
 
 ---
 
-## Step 5 — Activity log (t=1:10–1:20)
+## Step 5 — Import from Drive (t=1:10–1:28)
 
-In the gsheet2json sidebar, click the Activity Log tab or scroll to the activity log section (bottom of sidebar).
+Navigate back to the fixture spreadsheet tab.
 
-Wait up to 2 seconds for the log entries to be visible.
+In the sidebar, click the **Import from Drive** button (folder icon under IMPORT).
 
-Pause 4 seconds so the camera sees the populated activity log showing both the export and import entries.
+Wait up to 5 seconds for the Drive file picker to open.
 
-**Shot boundary note:** ~80 seconds elapsed. End card overlay begins at t=80 in post; no action needed here.
+Select the `.g2j.json` file exported in Step 3.
+
+Wait up to 10 seconds for the import to complete and a new sheet tab to appear. Do NOT proceed until the new tab is visible.
+
+Click the new imported sheet tab so the camera sees the freshly imported data.
+
+Pause 4 seconds.
+
+**Shot boundary note:** ~88 seconds elapsed.
 
 ---
 
-## Step 6 — End card hold (t=1:20–1:32)
+## Step 6 — Activity log close-up (t=1:28–1:38)
 
-Close or minimize the sidebar (click X on the sidebar or use the Extensions menu to close).
+Navigate back to the original sheet tab (the sidebar stays open).
 
-Navigate to a new blank tab or back to the fixture sheet showing clean data.
+Scroll the sidebar down to the **Activity** section so both the export and import entries are visible.
 
-Pause 8 seconds — this gives the end card overlay (applied in post at t=80) room to show.
+Pause 6 seconds so the camera sees the full activity history.
+
+**Shot boundary note:** ~98 seconds elapsed.
+
+---
+
+## Step 7 — End card hold (t=1:38–1:48)
+
+Close the sidebar (click X).
+
+Pause 8 seconds for the end card overlay room.
 
 ---
 
 ## Done
 
-Print: `SHOT LIST COMPLETE — the operator: run ./scripts/record-screen.sh stop now`
-
-Wait for the operator to confirm recording stopped, then run:
-
-```bash
-./scripts/edit-promo.sh
-npx tsx scripts/upload-youtube.ts tmp/promo-final.mp4
-```
-
-Print the resulting YouTube URL.
+Tell the operator to stop the recording.
 
 ---
 
 ## Pacing notes
 
-* Every network-bound action (Drive save, import, Drive load) waits for the operation to complete, up to the per-step timeout noted above, before proceeding.
-* Every shot boundary pause is 2–3 seconds of "hold" to give the camera clean cut points.
-* If any step fails (sidebar does not open, export does not complete, import rows do not land): stop, print the failure, and do NOT continue. Do not attempt recovery — the recording will need a retake from Step 0.
-* Total target runtime: 92 seconds. Actual may vary 5–10 seconds due to network latency.
+* All network-bound steps wait for completion before proceeding.
+* OAuth Allow click at Step 1 must be done by the operator — cannot be automated.
+* If any step fails: stop, print the failure, do NOT continue. Retake from Step 0.
+* Total target runtime: ~100 seconds.
 
-<!-- end scripts/browser-actor-prompt.md -->
+<!-- end scripts/browser-actor-prompt-using.md -->
