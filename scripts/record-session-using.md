@@ -2,7 +2,7 @@
 
 # gsheet2json Promo Video — "Using": Full Recording Session
 
-Paste this entire file into a Claude Code session. Claude runs the shell commands and browser actor; the operator clicks Allow on the OAuth consent screen when prompted. End result: a YouTube Unlisted URL printed to the terminal.
+Paste this entire file into a Claude Code session. Claude runs the shell commands and browser actor with no required operator interaction. End result: a YouTube Unlisted URL printed to the terminal.
 
 See `scripts/record-session-install.md` for the companion install + OAuth video.
 
@@ -11,7 +11,7 @@ See `scripts/record-session-install.md` for the companion install + OAuth video.
 Verify all prereqs are true:
 
 * gsheet2json add-on installed in Chrome (production listing or dev deployment).
-* gsheet2json authorization **revoked** at [myaccount.google.com/permissions](https://myaccount.google.com/permissions) → gsheet2json → Delete all — do this immediately before recording so the OAuth consent screen fires on first Open.
+* gsheet2json add-on installed and authorized — sidebar opens directly, no OAuth prompt.
 * Fixture spreadsheet open: https://docs.google.com/spreadsheets/d/15E8LvrzXeDy3ruj9AoM29Bh987sv1CQSDUKRC7moduo
 * `YOUTUBE_REFRESH_TOKEN` env var set (run `npx tsx scripts/get-youtube-token.ts` once if missing — it auto-writes to `.env.local`).
 * `YOUTUBE_TOKEN` env var set to `~/.g2j-youtube-credentials.json`.

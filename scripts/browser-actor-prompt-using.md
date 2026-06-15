@@ -12,7 +12,7 @@ See `scripts/record-session-using.md` for the full session wrapper.
 * Chrome window set to **1600×1700** at position **(0, 31)** on the LG 5K display (set via AX at session start per `fixture-sheet.md`).
 * Fixture spreadsheet open: https://docs.google.com/spreadsheets/d/15E8LvrzXeDy3ruj9AoM29Bh987sv1CQSDUKRC7moduo
 * `YOUTUBE_REFRESH_TOKEN` and `YOUTUBE_TOKEN` env vars set.
-* **gsheet2json authorization revoked** so the OAuth consent screen fires on first Open. Revoke at [myaccount.google.com/permissions](https://myaccount.google.com/permissions) → gsheet2json → Remove Access. Do this immediately before recording.
+* gsheet2json add-on authorized and ready — sidebar opens directly with no OAuth prompt.
 * No other screen recording active.
 
 ---
@@ -27,7 +27,7 @@ Pause 2 seconds.
 
 ---
 
-## Step 1 — Open sidebar + OAuth (t=0:06–0:28)
+## Step 1 — Open sidebar (t=0:06–0:20)
 
 Click the **Extensions** menu in the Google Sheets menu bar.
 
@@ -35,21 +35,15 @@ Wait up to 3 seconds for the dropdown to open.
 
 Click **gsheet2json** → **Open**.
 
-Because authorization was revoked, Google's OAuth consent screen will appear. Wait up to 5 seconds for it.
+Wait up to 5 seconds for the sidebar to open.
 
-Pause 3 seconds so the camera sees the consent screen clearly.
+Pause 3 seconds so the camera sees the open sidebar.
 
-**STOP — tell the operator:** "Please click Allow on the OAuth consent screen."
-
-Wait up to 10 seconds for the sidebar to open after the operator clicks Allow.
-
-Pause 3 seconds so the camera sees the open, authorized sidebar.
-
-**Shot boundary note:** ~28 seconds elapsed.
+**Shot boundary note:** ~20 seconds elapsed.
 
 ---
 
-## Step 2 — Sheet + sidebar overview (t=0:28–0:36)
+## Step 2 — Sheet + sidebar overview (t=0:20–0:28)
 
 Confirm the sheet is visible with the Income Statement data and the sidebar is docked on the right showing the Import/Export cards.
 
