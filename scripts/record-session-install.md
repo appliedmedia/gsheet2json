@@ -94,4 +94,10 @@ Done. YouTube URL (Install): <the URL from Step 6>
 2. Include this URL alongside the "Using" video URL in your reply to the Google reviewer.
 3. Re-install gsheet2json from the Marketplace so the add-on is available for the "Using" recording.
 
+## Published takes
+
+| Date | YouTube URL | Notes |
+| --- | --- | --- |
+| 2026-06-14 | https://youtu.be/w3AZom-UyHw | First published take; H.265, 44s, 2.2MB; trimmed 15s–59s from raw |
+
 <!-- end scripts/record-session-install.md -->
