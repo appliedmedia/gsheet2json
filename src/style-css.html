@@ -174,8 +174,8 @@
     color: var(--md-sys-color-on-primary-container);
   }
   .tile-icon-btn svg {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     fill: currentColor;
   }
   .tile-gloss::before {
@@ -650,14 +650,18 @@
     cursor: pointer;
     transition: background-color 120ms var(--md-sys-motion-easing-standard);
   }
-  .staging-btn:not(:disabled):hover { background: var(--md-sys-color-surface-container); }
+  .staging-btn:not(:disabled):hover { background: var(--md-sys-color-surface-container-high); }
   .staging-btn:disabled { opacity: 0.45; cursor: not-allowed; }
   .staging-btn.primary {
     background: var(--md-sys-color-primary);
     border-color: var(--md-sys-color-primary);
     color: var(--md-sys-color-on-primary);
   }
-  .staging-btn.primary:not(:disabled):hover { background: #0A4DBA; }
+  .staging-btn.primary:not(:disabled):hover {
+    background: #0A4DBA;
+    border-color: #0A4DBA;
+    box-shadow: 0 2px 6px rgba(11, 87, 208, 0.3);
+  }
   .staging-btn.icon-only {
     width: 26px;
     height: 24px;
@@ -679,6 +683,8 @@
   }
   #stagingClear.staging-btn:not(:disabled):hover {
     color: #000000;
+    background: var(--md-sys-color-surface-container-high);
+    border-color: var(--md-sys-color-outline);
   }
   /* Wastebasket emoji wants a touch more weight than the sibling glyphs.
      The 2px padding-bottom shifts the centered glyph up 1px so it doesn't
@@ -686,7 +692,7 @@
      its em box and was hugging the bottom border without this nudge. */
   #stagingClear.staging-btn.icon-only {
     font-size: 15px;
-    padding-bottom: 2px;
+    padding-bottom: 1px;
   }
 
   /* ── Activity feed (always visible, scrollable) ────────────────────── */
@@ -739,12 +745,14 @@
     border: 1px solid var(--md-sys-color-outline-variant);
     border-radius: var(--md-sys-shape-corner-xs);
     padding: 0;
+    padding-top: 1px;
     font-size: 13px;
     line-height: 1;
   }
   .activity-clear.icon-only:hover {
-    background: var(--md-sys-color-surface-container);
-    color: #000000;
+    background: var(--md-sys-color-primary-container);
+    border-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary-container);
   }
   .activity-list {
     flex: 1 1 auto;
@@ -798,13 +806,20 @@
     color: var(--md-sys-color-primary);
     cursor: pointer;
     padding: 0;
-    transition: background-color 120ms var(--md-sys-motion-easing-standard);
+    transition:
+      background-color 120ms var(--md-sys-motion-easing-standard),
+      border-color 120ms var(--md-sys-motion-easing-standard),
+      color 120ms var(--md-sys-motion-easing-standard);
   }
-  .activity-action-icon:hover { background: var(--md-sys-color-surface-container); }
+  .activity-action-icon:hover {
+    background: var(--md-sys-color-primary);
+    border-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+  }
   .activity-action-icon:disabled { opacity: 0.55; cursor: not-allowed; }
   .activity-action-icon svg {
-    width: 14px;
-    height: 14px;
+    width: 17px;
+    height: 17px;
     fill: currentColor;
   }
   .activity-actions > button:not(.activity-action-icon) {
