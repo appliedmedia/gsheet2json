@@ -4,14 +4,17 @@
 set -euo pipefail
 
 DEPLOYMENT_ID="AKfycbyVkxEjiFyV4kzMd8cZADsjmHUlAN-DgSRb2errioqNHi3k3r4abUSbrr_JD_6wQIyh"
-PKG_VERSION=$(node -p "require('./package.json').version")
 
 npm run push
 
-npx clasp version "v${PKG_VERSION}"
+npx clasp version "v$(node -p "require('./package.json').version")"
 
 NEW_VER=$(npx clasp versions 2>/dev/null | grep -oE '^[0-9]+' | sort -n | tail -1)
 PREV_VER=$((NEW_VER - 1))
+
+# Sync package.json patch to Apps Script version number
+node -e "const fs=require('fs'),p=JSON.parse(fs.readFileSync('package.json'));const parts=p.version.split('.');parts[2]='${NEW_VER}';p.version=parts.join('.');fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n')"
+PKG_VERSION=$(node -p "require('./package.json').version")
 
 npx clasp deploy --deploymentId "$DEPLOYMENT_ID" --versionNumber "$NEW_VER" --description "v${PKG_VERSION}"
 
