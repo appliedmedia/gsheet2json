@@ -98,6 +98,7 @@ Done. YouTube URL (Install): <the URL from Step 6>
 
 | Date | YouTube URL | Notes |
 | --- | --- | --- |
-| 2026-06-14 | https://youtu.be/w3AZom-UyHw | First published take; H.265, 44s, 2.2MB; trimmed 15s–59s from raw |
+| 2026-06-14 | https://youtu.be/w3AZom-UyHw | H.265 re-encode — too blurry, superseded |
+| 2026-06-14 | https://youtu.be/xglvaJKlenA | Original H.264 trim, 44s, 14MB; trimmed 15s–59s from raw — use this one |
 
 <!-- end scripts/record-session-install.md -->
