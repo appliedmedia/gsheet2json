@@ -15,7 +15,7 @@ Claude executes each step via browser automation. The operator runs `./scripts/r
 
 ## Step 0 — Setup (Claude executes)
 
-Use `mcp__claude-in-chrome__tabs_context_mcp` to identify the fixture spreadsheet tab. If not found, stop and tell the operator to open it.
+Use `mcp__claude-in-chrome__tabs_context_mcp` to identify the fixture spreadsheet tab. If not found, stop and ask the operator to open it.
 
 Set Chrome window to **1500×1600** at position **(0, 31)** via the Swift AX API.
 
@@ -33,7 +33,7 @@ In the sidebar, click the **Export to local file** button (download icon under E
 
 Wait up to 5 seconds for the browser's file save dialog to appear.
 
-**Operator action required:** accept the default filename and save the file. Signal Claude to continue when done.
+**Operator action required:** accept the default filename and save the file. Reply "done" in this Claude session to continue.
 
 Wait for the activity log entry confirming the local save.
 
@@ -47,7 +47,7 @@ Pause 3 seconds.
 
 In the sidebar, click the **Import from local file** button (upload icon under IMPORT).
 
-**Operator action required:** select the file just saved. Signal Claude to continue when done.
+**Operator action required:** select the file just saved. Reply "done" in this Claude session to continue.
 
 Wait up to 8 seconds for the import to complete and the text display to populate. Do NOT proceed until the JSON content is visible in the text pane.
 
@@ -61,7 +61,7 @@ Pause 4 seconds so the viewer can read the displayed JSON.
 
 Click into the text display pane to focus it.
 
-Delete a closing brace or quote character near the top of the JSON to produce a syntax error — for example, remove the `"` before a key name on the second property line.
+Delete any `"` or `{` character on lines 2–3 of the displayed JSON to produce a syntax error — the exact character doesn't matter, only that the result is invalid JSON.
 
 Pause 2 seconds.
 
@@ -149,7 +149,7 @@ Wait up to 5 seconds for the Drive file picker / list to open.
 
 Locate the filter or search field within the picker.
 
-Type a common JSON extension filter (e.g., `.json`) or click the "show only JSON" toggle if present.
+Type `.json` into the filter field to narrow the list to JSON files. If a "show only JSON" toggle is visible instead, click that.
 
 Pause 2 seconds so the viewer sees the filtered list.
 
@@ -226,6 +226,6 @@ Tell the operator to stop the recording.
 * All network-bound steps wait for visual confirmation before proceeding.
 * Steps 1 and 2 require operator file dialog interaction — Claude pauses and waits for the signal.
 * If any step fails: stop, print the failure, do NOT continue. Retake from Step 0.
-* Total target runtime: ~165 seconds (~2 min 45 sec).
+* Total target runtime: ~175 seconds (~2 min 55 sec).
 
 <!-- end scripts/browser-actor-prompt-explainer.md -->
