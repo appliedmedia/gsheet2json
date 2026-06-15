@@ -1,4 +1,4 @@
-<!-- scripts/browser-actor-prompt-install.md Copyright (c) 2005...2026-06-14.001:a@cov.in + Applied Media. All Rights Reserved. Do Not Duplicate. -->
+<!-- scripts/browser-actor-prompt-install.md Copyright (c) 2005...2026-06-14.001:a@cov.in + Applied Media. All Rights Reserved. Do Not Distribute. -->
 
 # gsheet2json Promo Video — "Install with OAuth": Browser Actor Prompt
 

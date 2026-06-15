@@ -1,5 +1,5 @@
 #!/bin/bash
-# scripts/record-screen.sh Copyright (c) 2005...2026-06-14.001:a@cov.in + Applied Media. All Rights Reserved. Do Not Duplicate.
+# scripts/record-screen.sh Copyright (c) 2005...2026-06-14.001:a@cov.in + Applied Media. All Rights Reserved. Do Not Distribute.
 set -euo pipefail
 
 DISPLAY_INDEX="2"

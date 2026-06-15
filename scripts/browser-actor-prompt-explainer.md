@@ -1,4 +1,4 @@
-<!-- scripts/browser-actor-prompt-explainer.md Copyright (c) 2005...2026-06-14.001:a@cov.in + Applied Media. All Rights Reserved. Do Not Duplicate. -->
+<!-- scripts/browser-actor-prompt-explainer.md Copyright (c) 2005...2026-06-14.001:a@cov.in + Applied Media. All Rights Reserved. Do Not Distribute. -->
 
 # gsheet2json Explainer Video — Browser Actor Prompt
 
