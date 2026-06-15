@@ -5,8 +5,8 @@ set -euo pipefail
 
 DEPLOYMENT_ID="AKfycbyVkxEjiFyV4kzMd8cZADsjmHUlAN-DgSRb2errioqNHi3k3r4abUSbrr_JD_6wQIyh"
 
-# Read current deployed version, predict next
-PREV_VER=$(npx clasp deployments 2>/dev/null | grep "$DEPLOYMENT_ID" | grep -oE '@[0-9]+' | tr -d '@')
+# Read max existing Apps Script version, predict next
+PREV_VER=$(npx clasp versions 2>/dev/null | tail -1 | grep -oE '^[0-9]+')
 NEW_VER=$((PREV_VER + 1))
 
 # Pre-bump package.json before build so gear icon bakes in the right version
