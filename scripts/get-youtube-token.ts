@@ -78,8 +78,19 @@ async function getYouTubeToken(): Promise<void> {
       // Exchange code for tokens
       const { tokens } = await oauth2Client.getToken(code);
 
-      // Print refresh token to stdout
-      console.log(tokens.refresh_token);
+      // Write refresh token to .env.local
+      const envPath = path.join(process.cwd(), '.env.local');
+      const envLine = `YOUTUBE_REFRESH_TOKEN=${tokens.refresh_token}`;
+      let envContent = '';
+      if (fs.existsSync(envPath)) {
+        envContent = fs.readFileSync(envPath, 'utf-8');
+        envContent = envContent.replace(/^YOUTUBE_REFRESH_TOKEN=.*/m, envLine);
+        if (!envContent.includes('YOUTUBE_REFRESH_TOKEN=')) envContent += `\n${envLine}`;
+      } else {
+        envContent = envLine + '\n';
+      }
+      fs.writeFileSync(envPath, envContent, 'utf-8');
+      console.log(`Refresh token written to ${envPath}`);
 
       res.writeHead(200);
       res.end('Authorization successful. You can close this window.');
