@@ -1,3 +1,9 @@
+// src/main.ts Copyright (c) 2005...2026-06-14.001:a@cov.in + Applied Media. All Rights Reserved. Do Not Distribute.
+//
+// Apps Script project:  1gjETvEjQ7-IK3NM3C0lNMhRRio3aDcAz8BwJuSjx8oKfKrT80IvZ4rSv
+// Marketplace deploy:   AKfycbyVkxEjiFyV4kzMd8cZADsjmHUlAN-DgSRb2errioqNHi3k3r4abUSbrr_JD_6wQIyh
+// @gas test deploy:     AKfycbyayRrWOTCu67kjC-_081if7PxWEJLqrgr2Nvcp9LI-iByLm2amoKwaNIQq-ofEDAu1
+
 /**
  * Entry points, menu, sidebar, and command router for gsheet2json add-on.
  * Depends on: export.ts, import.ts, settings.ts, licensing.ts (global scope).
