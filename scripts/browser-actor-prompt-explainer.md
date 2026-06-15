@@ -141,19 +141,29 @@ Pause 2 seconds.
 
 ---
 
-## Step 7 — Import from Google Drive + filter (t=1:46–2:10)
+## Step 7 — Import from Google Drive + filter + hide/unhide (t=1:46–2:22)
 
 In the sidebar, click the **Import from Drive** button (folder icon under IMPORT).
 
 Wait up to 5 seconds for the Drive file picker / list to open.
 
-Locate the filter or search field within the picker.
-
-Type `.json` into the filter field to narrow the list to JSON files. If a "show only JSON" toggle is visible instead, click that.
+Type `.json` into the filter field to narrow the list to JSON files.
 
 Pause 2 seconds so the viewer sees the filtered list.
 
-Click one of the listed `.g2j.json` files to select it.
+Locate the hide button on one of the listed files (not the one exported in Step 5 — pick a different one). Click it to add that file to the hidden list.
+
+Pause 2 seconds — confirm the file disappears from the main list and the **Hidden items (N)** toggle appears at the bottom of the picker.
+
+Click the **Hidden items** toggle to expand the hidden list so the viewer can see the file is there.
+
+Pause 2 seconds.
+
+Click the unhide button on that file to restore it to the main list.
+
+Pause 2 seconds — confirm it reappears.
+
+Now click the `.g2j.json` file exported in Step 5 to import it.
 
 Wait up to 10 seconds for the import to complete and a new sheet tab to appear.
 
@@ -161,11 +171,11 @@ Click the new imported sheet tab.
 
 Pause 4 seconds.
 
-**Shot boundary note:** ~130 seconds elapsed.
+**Shot boundary note:** ~150 seconds elapsed.
 
 ---
 
-## Step 8 — Resize panes (t=2:10–2:22)
+## Step 8 — Resize panes (t=2:22–2:34)
 
 Navigate back to the original sheet tab.
 
@@ -177,25 +187,25 @@ Drag it back toward the original position.
 
 Pause 2 seconds.
 
-**Shot boundary note:** ~142 seconds elapsed.
+**Shot boundary note:** ~154 seconds elapsed.
 
 ---
 
-## Step 9 — Gear icon + hover over trash buttons (t=2:22–2:44)
+## Step 9 — Gear icon + hover settings items + hover trash buttons (t=2:34–2:58)
 
 Scroll the sidebar to reveal the **gear icon** in the lower corner.
 
 Click the gear icon to open the settings panel.
 
-Pause 4 seconds so the viewer can read the settings options.
+Pause 2 seconds.
 
-Scroll or navigate within settings to show any notable options (e.g., default export format, naming template).
+Hover over the first settings item for 2 seconds.
 
-Pause 3 seconds.
+Hover over the second settings item (if present) for 2 seconds.
 
 Close or dismiss the settings panel.
 
-Locate the **trash / delete** icon buttons in the activity log or file list.
+Locate the **trash / delete** icon buttons in the activity log.
 
 Hover over the first trash button for 2 seconds — do NOT click.
 
@@ -203,11 +213,11 @@ Hover over the second trash button (if present) for 2 seconds — do NOT click.
 
 Pause 2 seconds.
 
-**Shot boundary note:** ~164 seconds elapsed.
+**Shot boundary note:** ~178 seconds elapsed.
 
 ---
 
-## Step 10 — End card hold (t=2:44–2:54)
+## Step 10 — End card hold (t=2:58–3:08)
 
 Close the sidebar (click X).
 
@@ -226,6 +236,6 @@ Tell the operator to stop the recording.
 * All network-bound steps wait for visual confirmation before proceeding.
 * Steps 1 and 2 require operator file dialog interaction — Claude pauses and waits for the signal.
 * If any step fails: stop, print the failure, do NOT continue. Retake from Step 0.
-* Total target runtime: ~175 seconds (~2 min 55 sec).
+* Total target runtime: ~188 seconds (~3 min 8 sec).
 
 <!-- end scripts/browser-actor-prompt-explainer.md -->
