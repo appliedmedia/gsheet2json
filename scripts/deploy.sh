@@ -12,6 +12,12 @@ NEW_VER=$((PREV_VER + 1))
 # Pre-bump package.json before build so gear icon bakes in the right version
 node -e "const fs=require('fs'),p=JSON.parse(fs.readFileSync('package.json'));const parts=p.version.split('.');parts[2]='${NEW_VER}';p.version=parts.join('.');fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n')"
 PKG_VERSION=$(node -p "require('./package.json').version")
+
+# Bump the in-source VERSION strings to match, so the published version is baked
+# into the bundle and checked in. src/main.ts -> server VERSION (gear's server
+# value); src/app-js.html -> SIDEBAR_VERSION (gear's bundle value).
+node -e "const fs=require('fs');for(const f of ['src/main.ts','src/app-js.html']){fs.writeFileSync(f,fs.readFileSync(f,'utf8').replace(/const VERSION = \"[^\"]*\"/,'const VERSION = \"${PKG_VERSION}\"').replace(/const SIDEBAR_VERSION = \"[^\"]*\"/,'const SIDEBAR_VERSION = \"${PKG_VERSION}\"'))}"
+
 echo "▶ Version will be ${PKG_VERSION} (Apps Script v${NEW_VER})"
 
 npm run push

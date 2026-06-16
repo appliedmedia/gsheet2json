@@ -1580,11 +1580,17 @@
       for (let i = 0; i < els.length; i++) els[i].classList.add('gloss-run');
     }, 60);
   }
+  // Baked into THIS bundle at build time so the gear reports the version of the
+  // actually-loaded sidebar component. We also ask the server for its version;
+  // if it differs from the bundle, we surface both ("v<bundle> v <server>") so a
+  // stale/cached sidebar is immediately visible instead of silently misleading.
+  const SIDEBAR_VERSION = "1.2.33";
   function loadVersion() {
+    menuVersion.textContent = `v${SIDEBAR_VERSION}`;
     google.script.run
       .withSuccessHandler(function(ver) {
-        if (ver) {
-          menuVersion.textContent = `v${ver}`;
+        if (ver && ver !== SIDEBAR_VERSION) {
+          menuVersion.textContent = `v${SIDEBAR_VERSION} v ${ver}`;
         }
       })
       .withFailureHandler(function() {})

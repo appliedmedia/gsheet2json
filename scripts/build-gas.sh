@@ -12,5 +12,6 @@ cp src/styles.html src/index.html src/style-css.html src/layout.html src/app-js.
 
 VERSION=$(node -p "require('./package.json').version")
 sed -i '' "s/const VERSION = \"[^\"]*\"/const VERSION = \"${VERSION}\"/" out/main.gs
+sed -i '' "s/const SIDEBAR_VERSION = \"[^\"]*\"/const SIDEBAR_VERSION = \"${VERSION}\"/" out/app-js.html
 
 # end scripts/build-gas.sh
