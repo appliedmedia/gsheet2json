@@ -10,7 +10,7 @@
  * No import/export: Apps Script global scope.
  */
 
-const VERSION = "1.2.34"; // latest known version; build substitutes the exact package.json version into the bundle
+const VERSION = "1.2.35"; // latest known version; build substitutes the exact package.json version into the bundle
 
 // ---------------------------------------------------------------------------
 // Menu
