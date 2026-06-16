@@ -1392,7 +1392,10 @@
     btn.type = 'button';
     btn.className = 'hr-unhide';
     btn.textContent = 'Unhide';
-    btn.onclick = function() { unignore(unignoreKind, unignoreValue); };
+    // stopPropagation so the document click-away handler doesn't fire: unignore
+    // re-renders and detaches this button, after which the handler would see a
+    // detached node, decide it's "outside" the picker, and close the picker.
+    btn.onclick = function(e) { e.stopPropagation(); unignore(unignoreKind, unignoreValue); };
     row.appendChild(btn);
     return row;
   }
