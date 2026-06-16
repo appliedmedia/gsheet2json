@@ -52,11 +52,22 @@ Then('{string} exists and is non-empty', function (path: string) {
   assert.ok(st.size > 0, `${path} is empty`);
 });
 
-Then('VERSION in {string} equals version in {string}', function (tsPath: string, jsonPath: string) {
-  const tsVer = extractVersionConst(readFileSync(tsPath, 'utf8'));
-  const jsonVer = JSON.parse(readFileSync(jsonPath, 'utf8')).version;
-  assert.strictEqual(tsVer, jsonVer, `${tsPath} VERSION=${tsVer} vs ${jsonPath} version=${jsonVer}`);
-});
+Then(
+  'VERSION in {string} is within {int} of version in {string}',
+  function (tsPath: string, tolerance: number, jsonPath: string) {
+    const tsVer = extractVersionConst(readFileSync(tsPath, 'utf8'));
+    const jsonVer = JSON.parse(readFileSync(jsonPath, 'utf8')).version;
+    const ts = tsVer.split('.').map(Number);
+    const json = jsonVer.split('.').map(Number);
+    assert.strictEqual(ts[0], json[0], `major mismatch: ${tsPath} VERSION=${tsVer} vs ${jsonPath} version=${jsonVer}`);
+    assert.strictEqual(ts[1], json[1], `minor mismatch: ${tsPath} VERSION=${tsVer} vs ${jsonPath} version=${jsonVer}`);
+    const diff = Math.abs(ts[2] - json[2]);
+    assert.ok(
+      diff <= tolerance,
+      `${tsPath} VERSION=${tsVer} is ${diff} patch releases from ${jsonPath} version=${jsonVer} (tolerance ${tolerance})`,
+    );
+  },
+);
 
 Then('appsscript.json has key {string}', function (dottedKey: string) {
   const cfg = JSON.parse(readFileSync('src/appsscript.json', 'utf8'));

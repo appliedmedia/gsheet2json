@@ -516,12 +516,6 @@ namespace gsheet2json {
         });
         if (!list || !list.files) return [];
 
-        const settings = getSettings();
-        const ignoreFileNames = new Set<string>(settings.ignoredDriveFileNames);
-        const ignoreFileIds = new Set<string>(settings.ignoredDriveFileIds.map((r) => r.id));
-        const ignoreFolderIds = new Set<string>(settings.ignoredDriveFolderIds.map((r) => r.id));
-        const ignoreFolderNames = new Set<string>(settings.ignoredDriveFolderNames);
-
         const primary = list.files
           .filter((f): f is typeof f & { id: string; name: string } => Boolean(f.id && f.name))
           .map((f) => ({
@@ -550,23 +544,17 @@ namespace gsheet2json {
           }
         });
 
-        return primary
-          .filter((f) => !ignoreFileNames.has(f.name))
-          .filter((f) => !ignoreFileIds.has(f.id))
-          .filter((f) => !(f.folderId && ignoreFolderIds.has(f.folderId)))
-          .filter((f) => {
-            if (!f.folderId) return true;
-            const fname = folderNames.get(f.folderId) || "";
-            return !(fname && ignoreFolderNames.has(fname));
-          })
-          .map((f) => ({
-            id: f.id,
-            name: f.name,
-            webViewLink: f.webViewLink,
-            folderId: f.folderId,
-            folderName: folderNames.get(f.folderId) || "",
-            sizeBytes: f.sizeBytes,
-          }));
+        // Return the full list (including entries the user has hidden) and let
+        // the client tag/filter ignored files locally. That way Hide/Unhide are
+        // instant local re-renders instead of a fresh Drive rescan per toggle.
+        return primary.map((f) => ({
+          id: f.id,
+          name: f.name,
+          webViewLink: f.webViewLink,
+          folderId: f.folderId,
+          folderName: folderNames.get(f.folderId) || "",
+          sizeBytes: f.sizeBytes,
+        }));
       } catch (err) {
         console.error("getJsonFilesInDrive failed:", err);
         return [];

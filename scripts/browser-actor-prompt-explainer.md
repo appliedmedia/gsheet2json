@@ -7,7 +7,7 @@ Claude executes each step via browser automation. The operator runs `./scripts/r
 ## Prereqs checklist (verify before starting)
 
 * gsheet2json add-on installed and authorized in Chrome — sidebar opens directly, no OAuth prompt.
-* Chrome window set to **1500×1600** at position **(0, 31)** on the LG 5K display.
+* Chrome window set to **1450×1450** at position **(0, 31)** on the LG 5K display.
 * Fixture spreadsheet open: https://docs.google.com/spreadsheets/d/15E8LvrzXeDy3ruj9AoM29Bh987sv1CQSDUKRC7moduo
 * No other screen recording active.
 
@@ -17,7 +17,7 @@ Claude executes each step via browser automation. The operator runs `./scripts/r
 
 Use `mcp__claude-in-chrome__tabs_context_mcp` to identify the fixture spreadsheet tab. If not found, stop and ask the operator to open it.
 
-Set Chrome window to **1500×1600** at position **(0, 31)** via the Swift AX API.
+Set Chrome window to **1450×1450** at position **(0, 31)** via the Swift AX API. Record with the matching crop: `CROP_W=1450 CROP_H=1301 ./scripts/record-screen.sh start`.
 
 Open the sidebar via **Extensions → gsheet2json → Open**.
 
@@ -61,7 +61,7 @@ Pause 4 seconds so the viewer can read the displayed JSON.
 
 Click into the text display pane to focus it.
 
-Delete any `"` or `{` character on lines 2–3 of the displayed JSON to produce a syntax error — the exact character doesn't matter, only that the result is invalid JSON.
+Delete the trailing comma at the end of row 4 of the displayed JSON to produce a syntax error.
 
 Pause 2 seconds.
 

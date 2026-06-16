@@ -1075,10 +1075,26 @@
       })
       .gsheet2json_handleCommand('getJsonFilesInDrive');
   }
+  // Mirrors the server's ignore logic (Export.getJsonFilesInDrive). The server
+  // now returns the full list including hidden entries; the client decides what
+  // to show so Hide/Unhide never trigger a Drive rescan.
+  function isDriveFileIgnored(f) {
+    const s = currentSettings || {};
+    if ((s.ignoredDriveFileNames || []).indexOf(f.name) !== -1) return true;
+    const fileIds = s.ignoredDriveFileIds || [];
+    for (let i = 0; i < fileIds.length; i++) if (fileIds[i].id === f.id) return true;
+    if (f.folderId) {
+      const folderIds = s.ignoredDriveFolderIds || [];
+      for (let i = 0; i < folderIds.length; i++) if (folderIds[i].id === f.folderId) return true;
+    }
+    if (f.folderName && (s.ignoredDriveFolderNames || []).indexOf(f.folderName) !== -1) return true;
+    return false;
+  }
   function computeDuplicateNames() {
     const counts = {};
     if (!driveFiles) return;
     for (let i = 0; i < driveFiles.length; i++) {
+      if (isDriveFileIgnored(driveFiles[i])) continue;
       const n = driveFiles[i].name;
       counts[n] = (counts[n] || 0) + 1;
     }
@@ -1086,11 +1102,18 @@
     for (const k in counts) if (counts[k] > 1) driveDuplicateNames[k] = true;
   }
   function renderPicker() {
-    if (!driveFiles) return;
     const q = pickerFilter.value.trim().toLowerCase();
-    let filtered = driveFiles;
+    if (!driveFiles) {
+      // First open: files are still loading. Render the loading state and the
+      // hidden-items toggle now so the picker UI appears immediately on click
+      // instead of staying blank until the Drive fetch returns.
+      pickerList.innerHTML = '<div class="picker-msg loading">Loading…</div>';
+      renderHiddenList();
+      return;
+    }
+    let filtered = driveFiles.filter(function(f) { return !isDriveFileIgnored(f); });
     if (q) {
-      filtered = driveFiles.filter(function(f) {
+      filtered = filtered.filter(function(f) {
         return f.name.toLowerCase().indexOf(q) !== -1 ||
                (f.folderName && f.folderName.toLowerCase().indexOf(q) !== -1);
       });
@@ -1225,16 +1248,20 @@
     if (ops.length === 0) { closeRowMenus(); return; }
 
     closeRowMenus();
-    // Optimistic in-memory removal so the picker updates immediately.
-    if (driveFiles) {
-      driveFiles = driveFiles.filter(function(x) {
-        if (sel.file && sel.all  && x.name === f.name) return false;
-        if (sel.file && !sel.all && x.id === f.id) return false;
-        if (sel.folder && sel.all  && (x.folderName || '') === (f.folderName || '')) return false;
-        if (sel.folder && !sel.all && x.folderId === f.folderId) return false;
-        return true;
-      });
-    }
+    // Optimistic: add the rule(s) to the local settings copy so the row filters
+    // out immediately. driveFiles keeps every file (including the one just
+    // hidden) so a later Unhide is a local re-render, not a Drive rescan.
+    ops.forEach(function(op) {
+      if (op.cmd === 'ignoreDriveFileName') {
+        currentSettings.ignoredDriveFileNames = (currentSettings.ignoredDriveFileNames || []).concat([op.payload.name]);
+      } else if (op.cmd === 'ignoreDriveFileId') {
+        currentSettings.ignoredDriveFileIds = (currentSettings.ignoredDriveFileIds || []).concat([{ id: op.payload.id, name: op.payload.name }]);
+      } else if (op.cmd === 'ignoreDriveFolderName') {
+        currentSettings.ignoredDriveFolderNames = (currentSettings.ignoredDriveFolderNames || []).concat([op.payload.name]);
+      } else if (op.cmd === 'ignoreDriveFolderId') {
+        currentSettings.ignoredDriveFolderIds = (currentSettings.ignoredDriveFolderIds || []).concat([{ id: op.payload.id, name: op.payload.name }]);
+      }
+    });
     computeDuplicateNames();
     renderPicker();
 
@@ -1245,7 +1272,7 @@
       google.script.run
         .withSuccessHandler(function(settings) {
           currentSettings = settings;
-          if (i === ops.length - 1) renderHiddenList();
+          if (i === ops.length - 1) { computeDuplicateNames(); renderPicker(); }
           runNext(i + 1);
         })
         .withFailureHandler(function() { runNext(i + 1); })
@@ -1254,9 +1281,9 @@
     runNext(0);
   }
   function unignore(kind, value) {
-    // Optimistic: remove from local settings copy + re-render hidden list now,
-    // so the row disappears immediately even though the server roundtrip and
-    // subsequent loadDriveFiles() can take a moment.
+    // Remove the rule from the local settings copy and re-render. The full file
+    // list is already in driveFiles, so the unhidden file reappears in the main
+    // list with no Drive rescan.
     if (kind === 'fileName') {
       currentSettings.ignoredDriveFileNames = (currentSettings.ignoredDriveFileNames || [])
         .filter(function(n) { return n !== value; });
@@ -1270,13 +1297,15 @@
       currentSettings.ignoredDriveFolderIds = (currentSettings.ignoredDriveFolderIds || [])
         .filter(function(r) { return r.id !== value; });
     }
-    renderHiddenList();
+    computeDuplicateNames();
+    renderPicker();
     startStatus('Unhiding\u2026', 'fast');
     google.script.run
       .withSuccessHandler(function(settings) {
         currentSettings = settings;
         finishStatus();
-        loadDriveFiles();
+        computeDuplicateNames();
+        renderPicker();
       })
       .withFailureHandler(function() { abortStatus(); })
       .gsheet2json_handleCommand('unignoreDriveEntry', { kind: kind, value: value });
