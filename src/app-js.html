@@ -617,7 +617,8 @@
     const r = foot.getBoundingClientRect();
     return Math.abs(clientY - r.top) <= RESIZE_HANDLE_ZONE;
   }
-  function applyHiddenListHeight(h) {
+  function applyHiddenListHeight(h, minH) {
+    const floor = (typeof minH === 'number') ? minH : 40;
     const pickerEl = document.getElementById('drivePicker');
     const hl = document.getElementById('hiddenList');
     if (!pickerEl || !hl) return;
@@ -639,11 +640,29 @@
     // below the picker title.
     const normalMax = pickerEl.offsetHeight - headH - footChrome - filterH;
     const extremeMax = pickerEl.offsetHeight - headH - footChrome;
-    const clamped = Math.max(40, Math.min(h, Math.max(40, contentH), extremeMax));
+    const clamped = Math.max(floor, Math.min(h, Math.max(floor, contentH), extremeMax));
     const collapse = clamped > normalMax;
     if (filter) filter.style.display = collapse ? 'none' : '';
     if (list) list.style.display = collapse ? 'none' : '';
     hl.style.height = `${clamped}px`;
+  }
+  // Collapse the hidden-list disclosure back to "Show hidden": clear the drag
+  // height, restore the filter/list, and re-render so the toggle label flips.
+  function collapseHiddenList() {
+    const hl = document.getElementById('hiddenList');
+    if (!hl) return;
+    hl.classList.remove('visible');
+    const f = drivePicker.querySelector('.picker-filter');
+    const l = document.getElementById('pickerList');
+    if (f) f.style.display = '';
+    if (l) l.style.display = '';
+    hl.style.height = '';
+    renderHiddenList();
+  }
+  function hiddenRowHalfHeight() {
+    const hl = document.getElementById('hiddenList');
+    const row = hl ? hl.querySelector('.hidden-row') : null;
+    return (row ? row.offsetHeight : 16) / 2;
   }
   function beginHiddenListResize(ev) {
     const pickerEl = document.getElementById('drivePicker');
@@ -657,8 +676,10 @@
     foot.classList.add('dragging');
     document.body.style.cursor = 'row-resize';
     function onMove(moveEv) {
-      // Pulling up (clientY decreasing) increases hidden-list height.
-      applyHiddenListHeight(startH + (startY - moveEv.clientY));
+      // Pulling up (clientY decreasing) increases hidden-list height. Floor of 0
+      // so the user can drag it down to a sliver; we only decide whether to
+      // collapse on release, never snatch it closed mid-drag.
+      applyHiddenListHeight(startH + (startY - moveEv.clientY), 0);
     }
     function onUp() {
       window.removeEventListener('pointermove', onMove);
@@ -667,19 +688,34 @@
       foot.classList.remove('dragging');
       foot.classList.remove('resize-hot');
       document.body.style.cursor = '';
+      // Released with half a line or less showing -> snap closed.
+      if (hl.offsetHeight <= hiddenRowHalfHeight()) collapseHiddenList();
     }
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
   }
+  function pickerBounds() {
+    const pickerEl = document.getElementById('drivePicker');
+    const sidebarH = sidebarEl.clientHeight || window.innerHeight;
+    const pickerH = pickerEl && pickerEl.classList.contains('visible') ? pickerEl.offsetHeight : 0;
+    const chromeExclPicker = measureFixedChromeH() - pickerH;
+    const min = 120;
+    // Grow until both the JSON staging area and the activity feed are at their
+    // floors. Past the point where activity would dip below its min, the staging
+    // cascade below shrinks JSON toward its own min.
+    const max = Math.max(min, sidebarH - chromeExclPicker - STAGING_MIN_H - LOG_MIN_H);
+    return { min, max };
+  }
   function applyPickerHeight(h) {
     const pickerEl = document.getElementById('drivePicker');
     if (!pickerEl) return;
-    const min = 120;
-    const max = Math.max(min, window.innerHeight * 0.6);
-    pickerEl.style.height = `${Math.max(min, Math.min(max, h))}px`;
-    // When the picker shrinks (e.g. user grew the JSON staging area upward),
-    // re-clamp the hidden-list so its foot can't overflow off the picker
-    // bottom and conceal the toggle.
+    const b = pickerBounds();
+    pickerEl.style.height = `${Math.max(b.min, Math.min(b.max, h))}px`;
+    // Cascade: re-clamp staging against the new picker height so the activity
+    // feed keeps its floor; as the picker grows, JSON shrinks toward its min.
+    autosizeStaging();
+    // Re-clamp the hidden-list so its foot can't overflow off the picker bottom
+    // and conceal the toggle.
     const hl = document.getElementById('hiddenList');
     if (hl && hl.classList.contains('visible')) {
       applyHiddenListHeight(hl.offsetHeight);
@@ -728,13 +764,28 @@
   function beginBoundaryResize(ev) {
     const startY = ev.clientY;
     const startH = stagingPanel.offsetHeight;
+    const pickerEl = document.getElementById('drivePicker');
+    const pickerVisible = !!(pickerEl && pickerEl.classList.contains('visible'));
+    const startPickerH = pickerVisible ? pickerEl.offsetHeight : 0;
+    let pickerShrunk = false;
     isStagingResizeDrag = true;
     stagingPanel.classList.add('dragging');
     activityPanel.classList.add('dragging');
     document.body.style.cursor = 'row-resize';
     function onMove(moveEv) {
-      const delta = moveEv.clientY - startY;
-      applyStagingHeight(startH + delta);
+      const desired = startH + (moveEv.clientY - startY);
+      if (desired >= STAGING_MIN_H || !pickerVisible) {
+        // Restore the picker first (if we'd shrunk it) so dragging back down
+        // gives the space back to the picker before regrowing JSON.
+        if (pickerShrunk) { applyPickerHeight(startPickerH); pickerShrunk = false; }
+        applyStagingHeight(desired);
+      } else {
+        // JSON pinned at its floor; keep dragging up by shrinking the picker so
+        // the activity feed gains the space.
+        applyStagingHeight(STAGING_MIN_H);
+        applyPickerHeight(startPickerH - (STAGING_MIN_H - desired));
+        pickerShrunk = true;
+      }
     }
     function onUp() {
       window.removeEventListener('pointermove', onMove);
@@ -1432,18 +1483,14 @@
     return row;
   }
   hiddenToggle.onclick = function() {
-    const willClose = hiddenList.classList.contains('visible');
-    hiddenList.classList.toggle('visible');
-    // Closing the hidden-list must also restore picker-filter and picker-list
-    // in case an earlier extreme-grow had set them to display:none.
-    if (willClose) {
-      const f = drivePicker.querySelector('.picker-filter');
-      const l = document.getElementById('pickerList');
-      if (f) f.style.display = '';
-      if (l) l.style.display = '';
-      hiddenList.style.height = '';
+    if (hiddenList.classList.contains('visible')) {
+      // collapseHiddenList restores picker-filter/picker-list in case an
+      // earlier extreme-grow had set them to display:none.
+      collapseHiddenList();
+    } else {
+      hiddenList.classList.add('visible');
+      renderHiddenList();
     }
-    renderHiddenList();
   };
 
   /**
