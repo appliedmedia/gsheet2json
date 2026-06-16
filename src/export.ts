@@ -560,6 +560,73 @@ namespace gsheet2json {
         return [];
       }
     }
+
+    /** Full load for the picker: the change token (captured first, so a change
+     * mid-scan is caught next time) plus the file list. */
+    public static loadJson(): { token: string; files: DriveJsonFile[] } {
+      const token = Export.getDriveStartPageToken();
+      const files = Export.getJsonFilesInDrive();
+      return { token, files };
+    }
+
+    public static getDriveStartPageToken(): string {
+      try {
+        const res = Drive!.Changes!.getStartPageToken({ supportsAllDrives: true });
+        return res && res.startPageToken ? res.startPageToken : "";
+      } catch (err) {
+        console.error("getDriveStartPageToken failed:", err);
+        return "";
+      }
+    }
+
+    /** Cheap delta check: did any .json file change since `token`? Returns the
+     * advanced token to store. Missing token or any error reports changed=true so
+     * the caller rebuilds the cache (correctness over the caching optimization). */
+    public static getDriveJsonChanges(token: string): { changed: boolean; token: string } {
+      if (!token) return { changed: true, token: "" };
+      try {
+        let pageToken: string | undefined = token;
+        let newStartPageToken = token;
+        let changed = false;
+        let guard = 0;
+        while (pageToken && guard < 50) {
+          guard++;
+          const res: {
+            changes?: Array<{ removed?: boolean; file?: { name?: string; mimeType?: string } }>;
+            newStartPageToken?: string;
+            nextPageToken?: string;
+          } = Drive!.Changes!.list(pageToken, {
+            pageSize: 100,
+            includeRemoved: true,
+            includeItemsFromAllDrives: true,
+            supportsAllDrives: true,
+            fields: "newStartPageToken,nextPageToken,changes(removed,file(name,mimeType))",
+          });
+          const changes = res && res.changes ? res.changes : [];
+          for (const c of changes) {
+            if (c.removed) {
+              changed = true;
+              continue;
+            }
+            const f = c.file;
+            if (!f) continue;
+            if ((f.name || "").indexOf(".json") !== -1 || f.mimeType === "application/json") {
+              changed = true;
+            }
+          }
+          if (res && res.nextPageToken) {
+            pageToken = res.nextPageToken;
+          } else {
+            if (res && res.newStartPageToken) newStartPageToken = res.newStartPageToken;
+            pageToken = undefined;
+          }
+        }
+        return { changed, token: newStartPageToken };
+      } catch (err) {
+        console.error("getDriveJsonChanges failed:", err);
+        return { changed: true, token };
+      }
+    }
   }
 }
 
@@ -608,4 +675,10 @@ function getFileFolderUrl(fileId: string): string {
 }
 function getJsonFilesInDrive(): DriveJsonFile[] {
   return gsheet2json.Export.getJsonFilesInDrive();
+}
+function loadDriveJson(): { token: string; files: DriveJsonFile[] } {
+  return gsheet2json.Export.loadJson();
+}
+function getDriveJsonChanges(token: string): { changed: boolean; token: string } {
+  return gsheet2json.Export.getDriveJsonChanges(token);
 }

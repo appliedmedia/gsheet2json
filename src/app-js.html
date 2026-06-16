@@ -1026,6 +1026,7 @@
   var hiddenList   = document.getElementById('hiddenList');
 
   var driveFiles = null;
+  var driveChangeToken = null;
   var driveDuplicateNames = null;
   var currentSettings = {
     ignoredDriveFileNames: [],
@@ -1034,22 +1035,39 @@
     ignoredDriveFolderIds: []
   };
 
-  tileImportDrive.onclick = function() {
+  tileImportDrive.onclick = function(e) {
     if (drivePicker.classList.contains('visible')) {
       closeDrivePicker();
       return;
     }
-    openDrivePicker();
+    // Holding shift/option/cmd forces a full Drive reload, bypassing the cache.
+    openDrivePicker(!!(e && (e.shiftKey || e.altKey || e.metaKey)));
   };
+  // Hover affordance: with a modifier held and a non-empty cache, the tile
+  // offers a forced refresh; otherwise it stays the plain "GDrive" label.
+  tileImportDrive.addEventListener('mousemove', function(e) {
+    const canRefresh = (e.shiftKey || e.altKey || e.metaKey) && driveFiles && driveFiles.length;
+    tileImportDrive.title = canRefresh ? 'Refresh GDrive' : 'GDrive';
+  });
+  tileImportDrive.addEventListener('mouseleave', function() {
+    tileImportDrive.title = 'GDrive';
+  });
   pickerClose.onclick = closeDrivePicker;
 
-  function openDrivePicker() {
+  function openDrivePicker(forceRefresh) {
     drivePicker.classList.add('visible');
     tileImportDrive.classList.add('active');
     pickerFilter.value = '';
     setTimeout(function() { pickerFilter.focus(); autosizeStaging(); }, 10);
     renderPicker();
-    loadDriveFiles();
+    // Caching: a forced refresh (modifier-click) or an empty cache does a full
+    // load. Otherwise show the cached list instantly and only rebuild it if the
+    // change token reports a .json file changed since the last load.
+    if (forceRefresh || !driveFiles) {
+      loadDriveFiles();
+    } else {
+      refreshIfDriveChanged();
+    }
   }
   function closeDrivePicker() {
     drivePicker.classList.remove('visible');
@@ -1061,8 +1079,9 @@
     pickerList.innerHTML = '<div class="picker-msg loading">Loading\u2026</div>';
     startStatus('Loading Drive files\u2026', 'slow');
     google.script.run
-      .withSuccessHandler(function(files) {
-        driveFiles = files || [];
+      .withSuccessHandler(function(res) {
+        driveFiles = (res && res.files) ? res.files : [];
+        driveChangeToken = (res && res.token) ? res.token : null;
         computeDuplicateNames();
         renderPicker();
         finishStatus();
@@ -1073,7 +1092,20 @@
         pickerList.innerHTML = `<div class="picker-msg" style="color:var(--md-sys-color-error)">${errMsg}</div>`;
         abortStatus();
       })
-      .gsheet2json_handleCommand('getJsonFilesInDrive');
+      .gsheet2json_handleCommand('loadDriveJson');
+  }
+  // Cheap delta check against the stored change token: keep showing the cache and
+  // only do a full reload if a .json file changed. Missing token or any failure
+  // falls back to a full reload (correctness over the caching optimization).
+  function refreshIfDriveChanged() {
+    if (!driveChangeToken) { loadDriveFiles(); return; }
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (res && res.token) driveChangeToken = res.token;
+        if (!res || res.changed) loadDriveFiles();
+      })
+      .withFailureHandler(function() { loadDriveFiles(); })
+      .gsheet2json_handleCommand('driveJsonChanges', { token: driveChangeToken });
   }
   // Mirrors the server's ignore logic (Export.getJsonFilesInDrive). The server
   // now returns the full list including hidden entries; the client decides what

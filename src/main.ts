@@ -197,6 +197,8 @@ function gsheet2json_handleCommand(cmd: string, arg?: any): any {
     getExportJsonString: (payload?: { sheetName?: string; sessionId?: string }) =>
       getExportJsonString(payload?.sheetName, payload?.sessionId),
     getJsonFilesInDrive,
+    loadDriveJson,
+    driveJsonChanges: (payload: { token: string }) => getDriveJsonChanges(payload.token),
     runImportJsonToSheet: (payload: { json: string; sessionId?: string }) =>
       runImportJsonToSheet(payload.json, payload.sessionId),
     runImportJsonToSheetFromDrive: (payload: { fileId: string; sessionId?: string }) =>
