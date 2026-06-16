@@ -579,52 +579,41 @@ namespace gsheet2json {
       }
     }
 
-    /** Cheap delta check: did any .json file change since `token`? Returns the
-     * advanced token to store. Missing token or any error reports changed=true so
-     * the caller rebuilds the cache (correctness over the caching optimization). */
-    public static getDriveJsonChanges(token: string): { changed: boolean; token: string } {
+    /** Cheap delta check: were there ANY Drive changes since `token`? We don't
+     * inspect individual changes, the presence of any change busts the cache.
+     * On a change we return token:"" and let the caller's full reload mint a
+     * fresh token. Only when there are zero changes do we paginate to capture the
+     * advanced token. Missing token or any error reports changed=true. */
+    public static getDriveChanges(token: string): { changed: boolean; token: string } {
       if (!token) return { changed: true, token: "" };
       try {
         let pageToken: string | undefined = token;
         let newStartPageToken = token;
-        let changed = false;
         let guard = 0;
         while (pageToken && guard < 50) {
           guard++;
-          const res: {
-            changes?: Array<{ removed?: boolean; file?: { name?: string; mimeType?: string } }>;
-            newStartPageToken?: string;
-            nextPageToken?: string;
-          } = Drive!.Changes!.list(pageToken, {
-            pageSize: 100,
-            includeRemoved: true,
-            includeItemsFromAllDrives: true,
-            supportsAllDrives: true,
-            fields: "newStartPageToken,nextPageToken,changes(removed,file(name,mimeType))",
-          });
-          const changes = res && res.changes ? res.changes : [];
-          for (const c of changes) {
-            if (c.removed) {
-              changed = true;
-              continue;
-            }
-            const f = c.file;
-            if (!f) continue;
-            if ((f.name || "").indexOf(".json") !== -1 || f.mimeType === "application/json") {
-              changed = true;
-            }
+          const res: { changes?: unknown[]; newStartPageToken?: string; nextPageToken?: string } =
+            Drive!.Changes!.list(pageToken, {
+              pageSize: 100,
+              includeRemoved: true,
+              includeItemsFromAllDrives: true,
+              supportsAllDrives: true,
+              fields: "newStartPageToken,nextPageToken,changes(fileId)",
+            });
+          if (res.changes && res.changes.length > 0) {
+            return { changed: true, token: "" };
           }
-          if (res && res.nextPageToken) {
+          if (res.nextPageToken) {
             pageToken = res.nextPageToken;
           } else {
-            if (res && res.newStartPageToken) newStartPageToken = res.newStartPageToken;
+            if (res.newStartPageToken) newStartPageToken = res.newStartPageToken;
             pageToken = undefined;
           }
         }
-        return { changed, token: newStartPageToken };
+        return { changed: false, token: newStartPageToken };
       } catch (err) {
-        console.error("getDriveJsonChanges failed:", err);
-        return { changed: true, token };
+        console.error("getDriveChanges failed:", err);
+        return { changed: true, token: "" };
       }
     }
   }
@@ -679,6 +668,6 @@ function getJsonFilesInDrive(): DriveJsonFile[] {
 function loadDriveJson(): { token: string; files: DriveJsonFile[] } {
   return gsheet2json.Export.loadJson();
 }
-function getDriveJsonChanges(token: string): { changed: boolean; token: string } {
-  return gsheet2json.Export.getDriveJsonChanges(token);
+function getDriveChanges(token: string): { changed: boolean; token: string } {
+  return gsheet2json.Export.getDriveChanges(token);
 }

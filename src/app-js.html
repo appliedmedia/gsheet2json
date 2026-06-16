@@ -1062,7 +1062,7 @@
     renderPicker();
     // Caching: a forced refresh (modifier-click) or an empty cache does a full
     // load. Otherwise show the cached list instantly and only rebuild it if the
-    // change token reports a .json file changed since the last load.
+    // change token reports any Drive change since the last load.
     if (forceRefresh || !driveFiles) {
       loadDriveFiles();
     } else {
@@ -1095,8 +1095,8 @@
       .gsheet2json_handleCommand('loadDriveJson');
   }
   // Cheap delta check against the stored change token: keep showing the cache and
-  // only do a full reload if a .json file changed. Missing token or any failure
-  // falls back to a full reload (correctness over the caching optimization).
+  // only do a full reload if Drive reports any change. Missing token or any
+  // failure falls back to a full reload (correctness over the optimization).
   function refreshIfDriveChanged() {
     if (!driveChangeToken) { loadDriveFiles(); return; }
     google.script.run
@@ -1105,7 +1105,7 @@
         if (!res || res.changed) loadDriveFiles();
       })
       .withFailureHandler(function() { loadDriveFiles(); })
-      .gsheet2json_handleCommand('driveJsonChanges', { token: driveChangeToken });
+      .gsheet2json_handleCommand('driveChanges', { token: driveChangeToken });
   }
   // Mirrors the server's ignore logic (Export.getJsonFilesInDrive). The server
   // now returns the full list including hidden entries; the client decides what
