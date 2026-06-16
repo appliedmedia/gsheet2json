@@ -5,9 +5,15 @@ set -euo pipefail
 
 DEPLOYMENT_ID="AKfycbyVkxEjiFyV4kzMd8cZADsjmHUlAN-DgSRb2errioqNHi3k3r4abUSbrr_JD_6wQIyh"
 
-# Read max existing Apps Script version, predict next
-PREV_VER=$(npx clasp versions 2>/dev/null | tail -1 | grep -oE '^[0-9]+')
-NEW_VER=$((PREV_VER + 1))
+# Max existing Apps Script version -> next version to create.
+MAX_VER=$(npx clasp versions 2>/dev/null | tail -1 | grep -oE '^[0-9]+')
+NEW_VER=$((MAX_VER + 1))
+
+# Version the marketplace deployment currently points at, captured BEFORE we
+# redeploy below. Best programmatic proxy for "currently published"; the actual
+# console "Sheets Add-on Script Version" field isn't readable via API. Empty if
+# it can't be determined.
+CURRENT_PUBLISHED_VER=$(npx clasp deployments 2>/dev/null | grep -- "$DEPLOYMENT_ID" | grep -oE '@[0-9]+' | tr -d '@' | tail -1 || true)
 
 # Pre-bump package.json before build so gear icon bakes in the right version
 node -e "const fs=require('fs'),p=JSON.parse(fs.readFileSync('package.json'));const parts=p.version.split('.');parts[2]='${NEW_VER}';p.version=parts.join('.');fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n')"
@@ -25,7 +31,11 @@ npx clasp version "v${PKG_VERSION}"
 npx clasp deploy --deploymentId "$DEPLOYMENT_ID" --versionNumber "$NEW_VER" --description "v${PKG_VERSION}"
 
 echo ""
-echo "⚠️  MANUAL STEP: bump 'Sheets Add-on Script Version *' from ${PREV_VER} to ${NEW_VER} at:"
+if [[ -n "${CURRENT_PUBLISHED_VER}" ]]; then
+  echo "⚠️  MANUAL STEP: bump 'Sheets Add-on Script Version *' from ${CURRENT_PUBLISHED_VER} to ${NEW_VER} at:"
+else
+  echo "⚠️  MANUAL STEP: bump 'Sheets Add-on Script Version *' to ${NEW_VER} at:"
+fi
 echo "   https://console.cloud.google.com/apis/api/appsmarket-component.googleapis.com/overview?project=am-gsheet2json"
 echo -n "https://console.cloud.google.com/apis/api/appsmarket-component.googleapis.com/overview?project=am-gsheet2json" | pbcopy
 echo "   (URL copied to clipboard)"
