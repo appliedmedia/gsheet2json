@@ -1625,7 +1625,7 @@
     google.script.run
       .withSuccessHandler(function(ver) {
         if (ver && ver !== SIDEBAR_VERSION) {
-          menuVersion.textContent = `v${SIDEBAR_VERSION} v ${ver}`;
+          menuVersion.textContent = `v${SIDEBAR_VERSION} vs. v${ver}`;
         }
       })
       .withFailureHandler(function() {})
