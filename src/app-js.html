@@ -1331,15 +1331,15 @@
     }
     computeDuplicateNames();
     renderPicker();
-    startStatus('Unhiding\u2026', 'fast');
+    // Persist in the background; the unhide already repainted locally, so no
+    // status bar (it was a fake timer-driven one anyway).
     google.script.run
       .withSuccessHandler(function(settings) {
         currentSettings = settings;
-        finishStatus();
         computeDuplicateNames();
         renderPicker();
       })
-      .withFailureHandler(function() { abortStatus(); })
+      .withFailureHandler(function() {})
       .gsheet2json_handleCommand('unignoreDriveEntry', { kind: kind, value: value });
   }
   function closeRowMenus() {
