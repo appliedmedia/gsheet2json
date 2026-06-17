@@ -1267,6 +1267,7 @@
     const prefix = document.createElement('span');
     prefix.className = 'pr-menu-prefix';
     prefix.textContent = 'Hide:';
+    prefix.title = 'Apply and close';
     menu.appendChild(prefix);
 
     const fileTag = makeHideTag('file');
@@ -1400,6 +1401,19 @@
     }
     for (let j = 0; j < commits.length; j++) commits[j]();
   }
+  // Modal hide menu: while a row's Hide menu is open, it captures the very next
+  // click. Clicks on its cycling tags pass through (so they keep cycling);
+  // everything else — the "Hide:" label, the kebab, the row/picker behind, the
+  // background — commits the menu, closes it, and is swallowed (no propagation),
+  // so an outside click can't accidentally trigger the element behind it.
+  document.addEventListener('click', function(e) {
+    const open = pickerList.querySelector('.pr-menu.open');
+    if (!open) return;
+    if (e.target.closest('.pr-tag')) return; // let the tag handle its own cycle
+    e.preventDefault();
+    e.stopPropagation();
+    closeRowMenus();
+  }, true);
   document.addEventListener('click', function(e) {
     if (!drivePicker.classList.contains('visible')) return;
     if (!e.target.closest('.pr-actions')) closeRowMenus();

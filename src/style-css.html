@@ -286,7 +286,7 @@
   }
   .picker-row {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     padding: 7px 8px 7px 12px;
     gap: 4px;
     cursor: pointer;
@@ -329,7 +329,9 @@
   .pr-menu-prefix {
     font: var(--md-sys-typescale-label-small);
     color: var(--md-sys-color-on-surface-variant);
+    cursor: pointer;
   }
+  .pr-menu-prefix:hover { color: var(--md-sys-color-on-surface); }
   .pr-tag {
     display: inline-flex;
     align-items: center;
@@ -407,7 +409,7 @@
     transition: transform 120ms var(--md-sys-motion-easing-standard);
   }
   .picker-foot button.expanded .hidden-toggle-arrow {
-    transform: rotate(90deg);
+    transform: rotate(-90deg);
   }
   .picker-foot .hidden-list {
     display: none;
