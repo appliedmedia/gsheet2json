@@ -40,9 +40,9 @@ Click the version field, select-all (`cmd+a`), and type `NEW_VER`. Do NOT touch 
 
 The save button is labeled **"Save Draft"** and sits at the bottom of the form, next to "Cancel". The screenshot capture height is fixed, so wheel-scroll will NOT bring it into view. Instead: click the last visible text field (e.g. "Developer Mailing Address") and press `Tab` once or twice — the browser scrolls the next focused control (and "Save Draft") into view. Confirm in a screenshot that only the version field changed, then click **Save Draft**. A small **"Saved"** toast appears on success. (Do NOT resize the Chrome window off-screen to chase the button — that drops the extension connection.)
 
-## Step 5 — Verify
+## Step 5 — Verify (mandatory reload)
 
-Re-read the version field (or reload the page and re-find it). Confirm it persisted as `NEW_VER`. Report: "Marketplace script version saved: `<old>` -> `NEW_VER`." If the save did not persist, do not retry blindly, screenshot and surface the page state to the operator.
+The "Saved" toast is NOT sufficient proof: if the Claude-in-Chrome extension disconnects around the click (it sometimes does on this page), the toast can appear without the save committing server-side. So ALWAYS fully reload the page (`navigate` to the same URL), scroll back to the version field, and confirm it now loads as `NEW_VER`. Only then report "Marketplace script version saved: `<old>` -> `NEW_VER` (verified after reload)." If the reloaded value is NOT `NEW_VER`, the save didn't stick — redo Steps 3-5 (reconnect via `tabs_context_mcp` first if the extension dropped). Note: the field only needs to reach the latest version; it's fine to jump straight to it (e.g. 39 -> 43) without hitting the intermediate numbers.
 
 ## Guardrails
 
