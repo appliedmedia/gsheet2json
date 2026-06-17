@@ -656,11 +656,10 @@
     hl.style.height = '';
     renderHiddenList();
   }
-  function hiddenRowHalfHeight() {
-    const hl = document.getElementById('hiddenList');
-    const row = hl ? hl.querySelector('.hidden-row') : null;
-    return (row ? row.offsetHeight : 16) / 2;
-  }
+  // Dragged this close to home (collapsed) on release -> snap shut. Small so the
+  // bar travels continuously to its resting spot instead of stopping a line
+  // above and snapping.
+  var HIDDEN_HOME_SNAP_PX = 6;
   // While dragging, if the pointer leaves the sidebar entirely, end the drag —
   // so re-entering with the button still down doesn't silently resume it.
   function pointerOutsideSidebar(ev) {
@@ -702,8 +701,8 @@
       foot.classList.remove('dragging');
       foot.classList.remove('resize-hot');
       document.body.style.cursor = '';
-      // Released with half a line or less showing -> snap closed.
-      if (hl.offsetHeight <= hiddenRowHalfHeight()) collapseHiddenList();
+      // Released essentially at home -> snap closed.
+      if (hl.offsetHeight <= HIDDEN_HOME_SNAP_PX) collapseHiddenList();
     }
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
@@ -802,6 +801,10 @@
         applyPickerHeight(startPickerH - (STAGING_MIN_H - desired));
         pickerShrunk = true;
       }
+      // Re-clamp the hidden list to its cap so moving this bar can't let the
+      // hidden-list dragbar drift past the top stop.
+      const hlc = document.getElementById('hiddenList');
+      if (hlc && hlc.classList.contains('visible')) applyHiddenListHeight(hlc.offsetHeight);
     }
     function onUp() {
       window.removeEventListener('pointermove', onMove);
@@ -1529,6 +1532,8 @@
     } else {
       hiddenList.classList.add('visible');
       renderHiddenList();
+      // Open to a default height, clamped so it never pops past the top stop.
+      applyHiddenListHeight(96);
     }
   };
 
