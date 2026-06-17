@@ -10,7 +10,7 @@ Claude executes each step via the `mcp__claude-in-chrome__*` tools. The console 
 
 * `NEW_VER`: the Apps Script version number just deployed. Read it from the deploy output line `Version will be x.y.NEW_VER (Apps Script vNEW_VER)`, or the `from <current> to <NEW_VER>` manual-step line.
 * Project: `am-gsheet2json`.
-* Config page: [https://console.cloud.google.com/apis/api/appsmarket-component.googleapis.com/googleworkspacemarketplace?project=am-gsheet2json](<https://console.cloud.google.com/apis/api/appsmarket-component.googleapis.com/googleworkspacemarketplace?project=am-gsheet2json>) (the **App Configuration** tab of the Marketplace SDK). If that path 404s or lands on the API overview, navigate to the Marketplace SDK and open **App Configuration** manually.
+* Config page (proven path): navigate to [https://console.cloud.google.com/apis/api/appsmarket-component.googleapis.com/overview?project=am-gsheet2json](<https://console.cloud.google.com/apis/api/appsmarket-component.googleapis.com/overview?project=am-gsheet2json>) (the Marketplace SDK detail page), then click the **App Configuration** tab. The version field lives under the checked **Sheets add-on** section. (The `.../googleworkspacemarketplace` path 404s; don't use it.)
 
 ## Prereqs (verify before starting)
 
@@ -19,11 +19,11 @@ Claude executes each step via the `mcp__claude-in-chrome__*` tools. The console 
 
 ## Step 0 — Open the page
 
-Call `mcp__claude-in-chrome__tabs_context_mcp`. Reuse the existing console tab if one is open; otherwise `tabs_create_mcp` and `navigate` to the config page URL above. Wait up to 10 seconds for it to load. If a sign-in wall appears, stop and ask the operator (see prereqs).
+Call `mcp__claude-in-chrome__tabs_context_mcp`. Reuse the existing console tab if one is open; otherwise `tabs_create_mcp` and `navigate` to the overview URL above. Wait up to 10 seconds, then click the **App Configuration** tab. If a sign-in wall appears, stop and ask the operator (see prereqs).
 
 ## Step 1 — Locate the version field
 
-Use `find` with query "Sheets Add-on Script Version input field". If not found, `read_page` (filter interactive) and locate the input whose label/nearby text contains "Sheets Add-on Script Version" (it may read "Script Version" or "Add-on Script Version" depending on console copy). Capture its element ref. Take a screenshot to confirm visually.
+`find`/`read_page` do NOT see into this form (the console renders it outside the exposed a11y tree), so use screenshots + coordinates here. Scroll down within the form until the **Sheets add-on** section shows its two inputs: "Sheets add-on Project Script ID" and, just below it, "Sheets add-on script version". Screenshot/zoom to read the current version value.
 
 ## Step 2 — Check current value
 
@@ -34,11 +34,11 @@ Read the field's current value.
 
 ## Step 3 — Set the new value
 
-Focus the field (click its ref), select-all (`cmd+a`), and type `NEW_VER`. Do NOT touch any other field on the page. Screenshot to confirm the field now shows `NEW_VER`.
+Click the version field, select-all (`cmd+a`), and type `NEW_VER`. Do NOT touch any other field on the page. Zoom to confirm the field now shows `NEW_VER`.
 
 ## Step 4 — Save
 
-Find the **Save** button for the App Configuration form (query "Save button"). Before clicking, confirm in a screenshot that only the version field changed and the value is `NEW_VER`. Click Save. Wait up to 10 seconds for a success toast / the form to settle.
+The save button is labeled **"Save Draft"** and sits at the bottom of the form, next to "Cancel". The screenshot capture height is fixed, so wheel-scroll will NOT bring it into view. Instead: click the last visible text field (e.g. "Developer Mailing Address") and press `Tab` once or twice — the browser scrolls the next focused control (and "Save Draft") into view. Confirm in a screenshot that only the version field changed, then click **Save Draft**. A small **"Saved"** toast appears on success. (Do NOT resize the Chrome window off-screen to chase the button — that drops the extension connection.)
 
 ## Step 5 — Verify
 
