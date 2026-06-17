@@ -664,6 +664,13 @@
     const row = hl ? hl.querySelector('.hidden-row') : null;
     return (row ? row.offsetHeight : 16) / 2;
   }
+  // While dragging, if the pointer leaves the sidebar entirely, end the drag —
+  // so re-entering with the button still down doesn't silently resume it.
+  function pointerOutsideSidebar(ev) {
+    const r = sidebarEl.getBoundingClientRect();
+    return ev.clientX < r.left || ev.clientX > r.right ||
+           ev.clientY < r.top  || ev.clientY > r.bottom;
+  }
   function beginHiddenListResize(ev) {
     const pickerEl = document.getElementById('drivePicker');
     if (!pickerEl) return;
@@ -676,6 +683,7 @@
     foot.classList.add('dragging');
     document.body.style.cursor = 'row-resize';
     function onMove(moveEv) {
+      if (pointerOutsideSidebar(moveEv)) { onUp(); return; }
       // Pulling up (clientY decreasing) increases hidden-list height. Floor of 0
       // so the user can drag it down to a sliver; we only decide whether to
       // collapse on release, never snatch it closed mid-drag.
@@ -730,6 +738,7 @@
     pickerEl.classList.add('dragging');
     document.body.style.cursor = 'row-resize';
     function onMove(moveEv) {
+      if (pointerOutsideSidebar(moveEv)) { onUp(); return; }
       applyPickerHeight(startH + (moveEv.clientY - startY));
     }
     function onUp() {
@@ -773,6 +782,7 @@
     activityPanel.classList.add('dragging');
     document.body.style.cursor = 'row-resize';
     function onMove(moveEv) {
+      if (pointerOutsideSidebar(moveEv)) { onUp(); return; }
       const desired = startH + (moveEv.clientY - startY);
       if (desired >= STAGING_MIN_H || !pickerVisible) {
         // Restore the picker first (if we'd shrunk it) so dragging back down
