@@ -306,6 +306,21 @@
     word-break: break-all;
   }
   .picker-row .pr-actions { position: relative; flex: 0 0 auto; }
+  .picker-row .pr-actions .icon-btn {
+    display: block;
+    padding: 0;
+    margin-top: -2px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--md-sys-color-on-surface-variant);
+  }
+  .picker-row .pr-actions .icon-btn svg {
+    display: block;
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+  }
 
   /* Per-row kebab menu — tag chooser: Hide: [file] [folder] [all] [Done] */
   .pr-menu {
@@ -421,8 +436,8 @@
   }
   .picker-foot .hidden-list.visible {
     display: block;
-    /* Default height; can be overridden inline by the drag handler. */
-    height: 96px;
+    /* Height is always set inline by JS (click-expand or drag); no CSS default,
+       so grabbing from collapsed never flashes a fixed height. */
   }
   .picker-foot .hidden-row {
     display: flex;

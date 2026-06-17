@@ -656,10 +656,10 @@
     hl.style.height = '';
     renderHiddenList();
   }
-  // Dragged this close to home (collapsed) on release -> snap shut. Small so the
-  // bar travels continuously to its resting spot instead of stopping a line
-  // above and snapping.
-  var HIDDEN_HOME_SNAP_PX = 6;
+  // Collapse on release only when essentially at home (height ~0), so the bar
+  // travels continuously to its resting spot with no perceptible snap. The
+  // collapse just flips the toggle label back to "Show hidden".
+  var HIDDEN_HOME_SNAP_PX = 2;
   // While dragging, if the pointer leaves the sidebar entirely, end the drag —
   // so re-entering with the button still down doesn't silently resume it.
   function pointerOutsideSidebar(ev) {
@@ -1421,14 +1421,14 @@
     for (let j = 0; j < commits.length; j++) commits[j]();
   }
   // Modal hide menu: while a row's Hide menu is open, it captures the very next
-  // click. Clicks on its cycling tags pass through (so they keep cycling);
-  // everything else — the "Hide:" label, the kebab, the row/picker behind, the
-  // background — commits the menu, closes it, and is swallowed (no propagation),
-  // so an outside click can't accidentally trigger the element behind it.
+  // click. Clicks inside any row's action area pass through (tags cycle; the
+  // kebab toggles/switches on the first click). Everything else — the row text,
+  // picker, background — commits the menu, closes it, and is swallowed (no
+  // propagation), so an outside click can't trigger the element behind it.
   document.addEventListener('click', function(e) {
     const open = pickerList.querySelector('.pr-menu.open');
     if (!open) return;
-    if (e.target.closest('.pr-tag')) return; // let the tag handle its own cycle
+    if (e.target.closest('.pr-actions')) return;
     e.preventDefault();
     e.stopPropagation();
     closeRowMenus();
