@@ -39,5 +39,6 @@ fi
 echo "   https://console.cloud.google.com/apis/api/appsmarket-component.googleapis.com/overview?project=am-gsheet2json"
 echo -n "https://console.cloud.google.com/apis/api/appsmarket-component.googleapis.com/overview?project=am-gsheet2json" | pbcopy
 echo "   (URL copied to clipboard)"
+echo "   Or have Claude do it: scripts/browser-actor-prompt-marketplace-bump.md (NEW_VER=${NEW_VER})"
 
 # end scripts/deploy.sh
