@@ -384,11 +384,13 @@
   /* When the hidden-list is open, the foot's top edge becomes a drag handle —
      pulling it up grows the hidden-list (taking space from the picker-list
      above) without shrinking the overall picker. */
-  .picker-foot.expanded {
+  /* Drag handle: a double line is shown above the Show/Hide-hidden toggle
+     whenever there are hidden items, collapsed or expanded. */
+  .picker-foot.has-hidden {
     border-top: 3px double var(--md-sys-color-outline-variant);
   }
-  .picker-foot.expanded.resize-hot { cursor: row-resize; }
-  .picker-foot.expanded.dragging { user-select: none; }
+  .picker-foot.has-hidden.resize-hot { cursor: row-resize; }
+  .picker-foot.has-hidden.dragging { user-select: none; }
   .picker-foot button {
     background: transparent;
     border: none;

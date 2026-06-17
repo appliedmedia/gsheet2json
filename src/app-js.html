@@ -628,24 +628,19 @@
     const foot = pickerEl.querySelector('.picker-foot');
     const filter = pickerEl.querySelector('.picker-filter');
     const list = document.getElementById('pickerList');
-    // Restore display before measuring so we capture the natural sizes — the
-    // input inside picker-filter has an intrinsic height that flex-shrink:1
-    // alone won't squash to zero.
+    // The filter and file list always stay visible — the hidden list never
+    // covers them (that earlier "extreme" mode caused the jump above the title).
     if (filter) filter.style.display = '';
     if (list) list.style.display = '';
     const headH = head ? head.offsetHeight : 0;
     const footChrome = foot ? (foot.offsetHeight - hl.offsetHeight) : 0;
     const filterH = filter ? filter.offsetHeight : 0;
     const contentH = hl.scrollHeight; // natural height of all hidden rows
-    // normalMax: filter visible, picker-list squeezed to 0 via overflow:auto.
-    // extremeMax: filter+list both display:none so hidden-list reaches just
-    // below the picker title.
-    const normalMax = pickerEl.offsetHeight - headH - footChrome - filterH;
-    const extremeMax = pickerEl.offsetHeight - headH - footChrome;
-    const clamped = Math.max(floor, Math.min(h, Math.max(floor, contentH), extremeMax));
-    const collapse = clamped > normalMax;
-    if (filter) filter.style.display = collapse ? 'none' : '';
-    if (list) list.style.display = collapse ? 'none' : '';
+    // Stop growth a couple lines below the filter so the filter + at least one
+    // file row stay on screen and clickable.
+    const MIN_LIST_VISIBLE = 44;
+    const max = pickerEl.offsetHeight - headH - footChrome - filterH - MIN_LIST_VISIBLE;
+    const clamped = Math.max(floor, Math.min(h, contentH, Math.max(floor, max)));
     hl.style.height = `${clamped}px`;
   }
   // Collapse the hidden-list disclosure back to "Show hidden": clear the drag
@@ -1456,7 +1451,7 @@
     if (total === 0) {
       hiddenToggle.hidden = true;
       hiddenList.classList.remove('visible');
-      if (foot) foot.classList.remove('expanded');
+      if (foot) { foot.classList.remove('expanded'); foot.classList.remove('has-hidden'); }
       hiddenList.innerHTML = '';
       hiddenList.style.height = '';
       const f0 = drivePicker.querySelector('.picker-filter');
@@ -1467,7 +1462,7 @@
     }
     hiddenToggle.hidden = false;
     const open = hiddenList.classList.contains('visible');
-    if (foot) foot.classList.toggle('expanded', open);
+    if (foot) { foot.classList.add('has-hidden'); foot.classList.toggle('expanded', open); }
     hiddenToggle.classList.toggle('expanded', open);
     // Arrow on the LEFT of the label. Right-pointing chevron is rotated 90°
     // via CSS when .expanded so it points down — standard disclosure.
