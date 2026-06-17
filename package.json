@@ -1,6 +1,6 @@
 {
   "name": "gsheet2json",
-  "version": "1.2.46",
+  "version": "1.2.47",
   "type": "module",
   "scripts": {
     "build": "bash scripts/build.sh",
