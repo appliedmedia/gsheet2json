@@ -343,21 +343,30 @@
     user-select: none;
   }
   .pr-tag:hover { background: var(--md-sys-color-surface-container); }
-  .pr-tag.selected {
+  .pr-tag { position: relative; padding: 3px 7px; }
+  .pr-tag svg { width: 15px; height: 15px; fill: currentColor; display: block; }
+  .pr-tag.on {
     background: var(--md-sys-color-primary-container);
     border-color: var(--md-sys-color-primary);
     color: var(--md-sys-color-on-primary-container);
   }
-  .pr-tag-done {
+  .pr-tag-badge {
+    display: none;
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    min-width: 14px;
+    height: 14px;
+    padding: 0 3px;
+    box-sizing: border-box;
+    border-radius: 999px;
     background: var(--md-sys-color-primary);
-    border-color: var(--md-sys-color-primary);
     color: var(--md-sys-color-on-primary);
+    font-size: 9px;
+    line-height: 14px;
+    text-align: center;
   }
-  .pr-tag-done:hover {
-    background: #0A4DBA;
-    border-color: #0A4DBA;
-    color: var(--md-sys-color-on-primary);
-  }
+  .pr-tag.on .pr-tag-badge { display: block; }
 
   /* Hidden-items footer inside the picker.
      Flex column with [hidden-list, toggle] so the toggle stays anchored at the

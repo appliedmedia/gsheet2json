@@ -855,9 +855,9 @@
     clearValidationErrorUi();
     stagingImport.disabled = true;
     if (!stagingTextarea.value || !stagingTextarea.value.trim()) {
-      stagingStatus.textContent = 'Empty';
-      stagingStatus.className = 'staging-status copyable';
-      stagingStatus.title = 'Empty';
+      stagingStatus.textContent = '';
+      stagingStatus.className = 'staging-status';
+      stagingStatus.title = '';
       renderLineNumbers();
       return;
     }
@@ -918,10 +918,9 @@
     const v = stagingTextarea.value;
     if (!v || !v.trim()) {
       clearValidationErrorUi();
-      stagingStatus.textContent = 'Empty';
+      stagingStatus.textContent = '';
       stagingStatus.className = 'staging-status';
-      stagingStatus.classList.add('copyable');
-      stagingStatus.title = 'Empty';
+      stagingStatus.title = '';
       stagingImport.disabled = true;
       renderLineNumbers();
       return false;
@@ -1256,10 +1255,10 @@
     return row;
   }
   /**
-   * Build the per-row Hide menu as toggleable tag chips:
-   *   Hide: [file] [folder] [all] [Done]
-   * Tag selection state is held only on the DOM nodes; nothing is applied
-   * until [Done] is clicked. Click-away or kebab-toggle just closes (no apply).
+   * Build the per-row Hide menu:  Hide: [file] [folder]
+   * Each tag is a 3-state cycle (off -> this one (badge "1") -> all by name
+   * (badge "infinity") -> off). There is no [Done]: closing the menu (click-away
+   * or kebab toggle) commits whatever the tags were cycled to, via menu._commit.
    */
   function buildHideMenu(f) {
     const menu = document.createElement('div');
@@ -1270,67 +1269,64 @@
     prefix.textContent = 'Hide:';
     menu.appendChild(prefix);
 
-    const fileTag = makeHideTag('file', 'file');
+    const fileTag = makeHideTag('file');
     menu.appendChild(fileTag);
 
     let folderTag = null;
     if (f.folderId && f.folderName) {
-      folderTag = makeHideTag('folder', 'folder');
+      folderTag = makeHideTag('folder');
       menu.appendChild(folderTag);
     }
 
-    const allTag = makeHideTag('all', 'all');
-    menu.appendChild(allTag);
-
-    const doneBtn = document.createElement('button');
-    doneBtn.type = 'button';
-    doneBtn.className = 'pr-tag pr-tag-done';
-    doneBtn.textContent = 'Done';
-    doneBtn.onclick = function(e) {
-      e.stopPropagation();
-      const fileSel   = fileTag.classList.contains('selected');
-      const folderSel = folderTag && folderTag.classList.contains('selected');
-      const allSel    = allTag.classList.contains('selected');
-      if (!fileSel && !folderSel) {
-        closeRowMenus();
-        return;
-      }
-      applyIgnore(f, { file: fileSel, folder: folderSel, all: allSel });
+    menu._commit = function() {
+      commitHide(f, fileTag.dataset.state, folderTag ? folderTag.dataset.state : 'off');
     };
-    menu.appendChild(doneBtn);
 
-    // Stop propagation so click-away listener doesn't close while user is
-    // toggling tags inside the menu.
+    // Stop propagation so the click-away listener doesn't close (and commit)
+    // while the user is still cycling tags inside the menu.
     menu.addEventListener('click', function(e) { e.stopPropagation(); });
     return menu;
   }
-  function makeHideTag(kind, label) {
+  // A hide tag is a file/folder glyph that cycles off -> "one" (badge 1, hide
+  // this specific item by id) -> "all" (badge infinity, hide everything with
+  // this name) -> off.
+  function makeHideTag(kind) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'pr-tag';
     btn.dataset.kind = kind;
-    btn.textContent = label;
+    btn.dataset.state = 'off';
+    const icon = kind === 'folder'
+      ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>'
+      : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm1 7V3.5L19.5 9H15z"/></svg>';
+    btn.innerHTML = icon + '<span class="pr-tag-badge"></span>';
+    const badge = btn.querySelector('.pr-tag-badge');
+    function paint() {
+      const s = btn.dataset.state;
+      btn.classList.toggle('on', s !== 'off');
+      badge.textContent = s === 'all' ? '∞' : (s === 'one' ? '1' : '');
+      btn.title = s === 'all'
+        ? 'Hiding every ' + kind + ' with this name'
+        : (s === 'one' ? 'Hiding this ' + kind : 'Click to hide this ' + kind);
+    }
     btn.onclick = function(e) {
       e.stopPropagation();
-      btn.classList.toggle('selected');
+      btn.dataset.state = btn.dataset.state === 'off'
+        ? 'one'
+        : (btn.dataset.state === 'one' ? 'all' : 'off');
+      paint();
     };
+    paint();
     return btn;
   }
-  function applyIgnore(f, sel) {
-    // Build the list of (cmd, payload) pairs. file+all → name; file+!all → id;
-    // same for folder. If neither is selected, no-op (Done already handled).
+  function commitHide(f, fileState, folderState) {
     const ops = [];
-    if (sel.file) {
-      if (sel.all) ops.push({ cmd: 'ignoreDriveFileName', payload: { name: f.name } });
-      else         ops.push({ cmd: 'ignoreDriveFileId',   payload: { id: f.id, name: f.name } });
-    }
-    if (sel.folder) {
-      if (sel.all) ops.push({ cmd: 'ignoreDriveFolderName', payload: { name: f.folderName } });
-      else         ops.push({ cmd: 'ignoreDriveFolderId',   payload: { id: f.folderId, name: f.folderName } });
-    }
-    if (ops.length === 0) { closeRowMenus(); return; }
+    if (fileState === 'one') ops.push({ cmd: 'ignoreDriveFileId', payload: { id: f.id, name: f.name } });
+    else if (fileState === 'all') ops.push({ cmd: 'ignoreDriveFileName', payload: { name: f.name } });
+    if (folderState === 'one') ops.push({ cmd: 'ignoreDriveFolderId', payload: { id: f.folderId, name: f.folderName } });
+    else if (folderState === 'all') ops.push({ cmd: 'ignoreDriveFolderName', payload: { name: f.folderName } });
+    if (ops.length === 0) return;
 
-    closeRowMenus();
     // Optimistic: add the rule(s) to the local settings copy so the row filters
     // out immediately. driveFiles keeps every file (including the one just
     // hidden) so a later Unhide is a local re-render, not a Drive rescan.
@@ -1394,8 +1390,15 @@
       .gsheet2json_handleCommand('unignoreDriveEntry', { kind: kind, value: value });
   }
   function closeRowMenus() {
-    const menus = pickerList.querySelectorAll('.pr-menu.open');
-    for (let i = 0; i < menus.length; i++) menus[i].classList.remove('open');
+    // Closing IS the commit: apply each open menu's cycled tag states. Snapshot
+    // the commit fns first because commitHide -> renderPicker rebuilds the rows.
+    const menus = Array.prototype.slice.call(pickerList.querySelectorAll('.pr-menu.open'));
+    const commits = [];
+    for (let i = 0; i < menus.length; i++) {
+      menus[i].classList.remove('open');
+      if (menus[i]._commit) commits.push(menus[i]._commit);
+    }
+    for (let j = 0; j < commits.length; j++) commits[j]();
   }
   document.addEventListener('click', function(e) {
     if (!drivePicker.classList.contains('visible')) return;
