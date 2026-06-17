@@ -613,7 +613,9 @@
     const pickerEl = document.getElementById('drivePicker');
     if (!pickerEl || !pickerEl.classList.contains('visible')) return false;
     const foot = pickerEl.querySelector('.picker-foot');
-    if (!foot || !foot.classList.contains('expanded')) return false;
+    // Dragbar is always live on the foot's top edge whenever there are hidden
+    // items (toggle shown), whether the list is collapsed or expanded.
+    if (!foot || hiddenToggle.hidden) return false;
     const r = foot.getBoundingClientRect();
     return Math.abs(clientY - r.top) <= RESIZE_HANDLE_ZONE;
   }
@@ -677,8 +679,17 @@
     const foot = pickerEl.querySelector('.picker-foot');
     const hl = document.getElementById('hiddenList');
     if (!foot || !hl) return;
+    // Grabbing the bar while collapsed expands it (toggle flips to "Hide
+    // hidden") and starts from a sliver, so dragging up grows the list. On
+    // release, the snap below re-collapses if it's a sliver.
+    const wasCollapsed = !hl.classList.contains('visible');
+    if (wasCollapsed) {
+      hl.classList.add('visible');
+      renderHiddenList();
+      applyHiddenListHeight(0, 0);
+    }
     const startY = ev.clientY;
-    const startH = hl.offsetHeight;
+    const startH = wasCollapsed ? 0 : hl.offsetHeight;
     isHiddenListResizeDrag = true;
     foot.classList.add('dragging');
     document.body.style.cursor = 'row-resize';
