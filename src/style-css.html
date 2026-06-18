@@ -326,7 +326,7 @@
   .pr-menu {
     display: none;
     position: absolute;
-    top: 24px;
+    top: 21px;
     right: 0;
     padding: 6px 8px;
     background: var(--md-sys-color-surface-container-lowest);
@@ -341,6 +341,9 @@
     align-items: center;
     gap: 6px;
   }
+  /* Near the bottom of the scrollable list the default drop-down spills past the
+     list and gets clipped; .up flips it to sit just above the kebab instead. */
+  .pr-menu.up { top: auto; bottom: 21px; }
   .pr-menu-prefix {
     font: var(--md-sys-typescale-label-small);
     color: var(--md-sys-color-on-surface-variant);
@@ -430,9 +433,13 @@
   }
   .picker-foot .hidden-list {
     display: none;
-    margin-bottom: 4px;
-    padding-bottom: 4px;
     overflow-y: auto;
+    /* Pull the list's right edge out past the foot's 12px right padding so its
+       scrollbar lines up with the file list's (which sits at the picker edge)
+       instead of inset, where it crowded the unhide eye. No bottom margin/
+       padding: those made the expanded foot ~8px taller than the collapsed foot,
+       so the drag bar jumped down when "Hide hidden" flipped to "Show hidden". */
+    margin-right: -12px;
   }
   .picker-foot .hidden-list.visible {
     display: block;
@@ -443,7 +450,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 3px 0;
+    /* 8px right pad matches the file rows so the unhide eye clears the scrollbar. */
+    padding: 3px 8px 3px 0;
     font: var(--md-sys-typescale-label-small);
     color: var(--md-sys-color-on-surface-variant);
   }

@@ -684,6 +684,12 @@
     }
     const startY = ev.clientY;
     const startH = wasCollapsed ? 0 : hl.offsetHeight;
+    // Once the list is dragged all the way down to a sliver, continued downward
+    // travel grows the picker instead — which cascades the staging + activity
+    // dividers down to their floors. Dragging back up restores the picker first,
+    // then regrows the list, so the whole gesture stays reversible.
+    const startPickerH = pickerEl.offsetHeight;
+    let pickerGrown = false;
     isHiddenListResizeDrag = true;
     foot.classList.add('dragging');
     document.body.style.cursor = 'row-resize';
@@ -692,7 +698,17 @@
       // Pulling up (clientY decreasing) increases hidden-list height. Floor of 0
       // so the user can drag it down to a sliver; we only decide whether to
       // collapse on release, never snatch it closed mid-drag.
-      applyHiddenListHeight(startH + (startY - moveEv.clientY), 0);
+      const requested = startH + (startY - moveEv.clientY);
+      if (requested >= 0) {
+        if (pickerGrown) { applyPickerHeight(startPickerH); pickerGrown = false; }
+        applyHiddenListHeight(requested, 0);
+      } else {
+        // List pinned at its floor; spend the extra downward travel growing the
+        // picker so the panels below collapse toward their minimums.
+        applyHiddenListHeight(0, 0);
+        applyPickerHeight(startPickerH - requested);
+        pickerGrown = true;
+      }
     }
     function onUp() {
       window.removeEventListener('pointermove', onMove);
@@ -1259,7 +1275,10 @@
       // any other open menus and open this one.
       const alreadyOpen = menu.classList.contains('open');
       closeRowMenus();
-      if (!alreadyOpen) menu.classList.add('open');
+      if (!alreadyOpen) {
+        menu.classList.add('open');
+        positionRowMenu(menu);
+      }
     };
 
     const menu = buildHideMenu(f);
@@ -1416,9 +1435,21 @@
     const commits = [];
     for (let i = 0; i < menus.length; i++) {
       menus[i].classList.remove('open');
+      menus[i].classList.remove('up');
       if (menus[i]._commit) commits.push(menus[i]._commit);
     }
     for (let j = 0; j < commits.length; j++) commits[j]();
+  }
+  // Place an open row menu below its kebab by default, but flip it above when it
+  // would spill past the bottom of the scrollable file list (whose overflow
+  // would otherwise clip it for rows near the bottom).
+  function positionRowMenu(menu) {
+    menu.classList.remove('up');
+    const listEl = document.getElementById('pickerList');
+    if (!listEl) return;
+    if (menu.getBoundingClientRect().bottom > listEl.getBoundingClientRect().bottom) {
+      menu.classList.add('up');
+    }
   }
   // Modal hide menu: while a row's Hide menu is open, it captures the very next
   // click. Clicks inside any row's action area pass through (tags cycle; the
