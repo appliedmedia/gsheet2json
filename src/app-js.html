@@ -673,12 +673,14 @@
     const foot = pickerEl.querySelector('.picker-foot');
     const hl = document.getElementById('hiddenList');
     if (!foot || !hl) return;
-    // Grabbing the bar while collapsed must NOT flip it open. A closed list
-    // only opens once the user actually drags UP; pulling down (or releasing
-    // without moving up) leaves it on "Show hidden". So defer the expand until
-    // the first upward movement inside onMove.
+    // The open/closed "state" (toggle label + arrow) tracks the live drag height
+    // in BOTH directions, so it always matches what's shown: above the home
+    // sliver it reads "Hide hidden", back at home it reads "Show hidden". A
+    // closed list is only revealed on the first upward pull, so a downward drag
+    // on a closed list does nothing and leaves it closed.
     const startedCollapsed = !hl.classList.contains('visible');
-    let opened = !startedCollapsed;
+    let revealed = !startedCollapsed;
+    let lastLookOpen = !startedCollapsed;
     const startY = ev.clientY;
     const startH = startedCollapsed ? 0 : hl.offsetHeight;
     // Once an open list is dragged all the way down to a sliver, continued
@@ -694,13 +696,13 @@
       if (pointerOutsideSidebar(moveEv)) { onUp(); return; }
       // Pulling up (clientY decreasing) is positive travel.
       const delta = startY - moveEv.clientY;
-      if (!opened) {
-        // Closed and not yet opened this drag: ignore downward/neutral travel so
-        // it stays closed; the first upward pull opens it and grows from a sliver.
+      if (!revealed) {
+        // Closed: ignore downward/neutral travel so it stays closed; reveal the
+        // (already-populated) rows on the first upward pull. The label is driven
+        // below from the live height, not flipped here.
         if (delta <= 0) return;
-        opened = true;
+        revealed = true;
         hl.classList.add('visible');
-        renderHiddenList();
       }
       const requested = startH + delta;
       if (requested >= 0) {
@@ -713,6 +715,10 @@
         applyPickerHeight(startPickerH - requested);
         pickerGrown = true;
       }
+      // Live state: flip the toggle look the moment the height crosses home, in
+      // either direction (cheap — only fires on a crossing, not every move).
+      const lookOpen = hl.offsetHeight > HIDDEN_HOME_SNAP_PX;
+      if (lookOpen !== lastLookOpen) { applyHiddenToggleLook(lookOpen); lastLookOpen = lookOpen; }
     }
     function onUp() {
       window.removeEventListener('pointermove', onMove);
@@ -721,9 +727,10 @@
       foot.classList.remove('dragging');
       foot.classList.remove('resize-hot');
       document.body.style.cursor = '';
-      // Collapse on release only if it actually opened during this drag and is
-      // back at home. A drag that never opened (closed + pulled down) stays closed.
-      if (opened && hl.offsetHeight <= HIDDEN_HOME_SNAP_PX) collapseHiddenList();
+      // Commit from the final resting height: open if it came to rest above home,
+      // otherwise collapse back to "Show hidden".
+      if (revealed && hl.offsetHeight > HIDDEN_HOME_SNAP_PX) renderHiddenList();
+      else collapseHiddenList();
     }
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
@@ -1480,6 +1487,23 @@
   });
   pickerFilter.addEventListener('input', renderPicker);
 
+  // Set just the toggle's look — arrow direction, "Show/Hide" verb, and count —
+  // without rebuilding the row list. Used by renderHiddenList and live during a
+  // resize drag, where the list element stays `visible` the whole time and only
+  // this label tracks the current height.
+  function applyHiddenToggleLook(open) {
+    const s = currentSettings;
+    const total = (s.ignoredDriveFileNames || []).length
+      + (s.ignoredDriveFileIds || []).length
+      + (s.ignoredDriveFolderNames || []).length
+      + (s.ignoredDriveFolderIds || []).length;
+    const foot = drivePicker.querySelector('.picker-foot');
+    if (foot) foot.classList.toggle('expanded', open);
+    hiddenToggle.classList.toggle('expanded', open);
+    // Arrow on the LEFT of the label; rotated via CSS when .expanded.
+    hiddenToggle.innerHTML =
+      `<svg class="hidden-toggle-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l8 6-8 6z"/></svg>${open ? 'Hide' : 'Show'} hidden (${total})`;
+  }
   function renderHiddenList() {
     const foot = drivePicker.querySelector('.picker-foot');
     const names = currentSettings.ignoredDriveFileNames || [];
@@ -1500,13 +1524,8 @@
       return;
     }
     hiddenToggle.hidden = false;
-    const open = hiddenList.classList.contains('visible');
-    if (foot) { foot.classList.add('has-hidden'); foot.classList.toggle('expanded', open); }
-    hiddenToggle.classList.toggle('expanded', open);
-    // Arrow on the LEFT of the label. Right-pointing chevron is rotated 90°
-    // via CSS when .expanded so it points down — standard disclosure.
-    hiddenToggle.innerHTML =
-      `<svg class="hidden-toggle-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l8 6-8 6z"/></svg>${open ? 'Hide' : 'Show'} hidden (${total})`;
+    if (foot) foot.classList.add('has-hidden');
+    applyHiddenToggleLook(hiddenList.classList.contains('visible'));
     hiddenList.innerHTML = '';
     names.forEach(function(n) {
       hiddenList.appendChild(renderHiddenRow('file-name', 'Files named', n, null, 'fileName', n));
