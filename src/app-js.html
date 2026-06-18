@@ -673,21 +673,18 @@
     const foot = pickerEl.querySelector('.picker-foot');
     const hl = document.getElementById('hiddenList');
     if (!foot || !hl) return;
-    // Grabbing the bar while collapsed expands it (toggle flips to "Hide
-    // hidden") and starts from a sliver, so dragging up grows the list. On
-    // release, the snap below re-collapses if it's a sliver.
-    const wasCollapsed = !hl.classList.contains('visible');
-    if (wasCollapsed) {
-      hl.classList.add('visible');
-      renderHiddenList();
-      applyHiddenListHeight(0, 0);
-    }
+    // Grabbing the bar while collapsed must NOT flip it open. A closed list
+    // only opens once the user actually drags UP; pulling down (or releasing
+    // without moving up) leaves it on "Show hidden". So defer the expand until
+    // the first upward movement inside onMove.
+    const startedCollapsed = !hl.classList.contains('visible');
+    let opened = !startedCollapsed;
     const startY = ev.clientY;
-    const startH = wasCollapsed ? 0 : hl.offsetHeight;
-    // Once the list is dragged all the way down to a sliver, continued downward
-    // travel grows the picker instead — which cascades the staging + activity
-    // dividers down to their floors. Dragging back up restores the picker first,
-    // then regrows the list, so the whole gesture stays reversible.
+    const startH = startedCollapsed ? 0 : hl.offsetHeight;
+    // Once an open list is dragged all the way down to a sliver, continued
+    // downward travel grows the picker instead — which cascades the staging +
+    // activity dividers down to their floors. Dragging back up restores the
+    // picker first, then regrows the list, so the gesture stays reversible.
     const startPickerH = pickerEl.offsetHeight;
     let pickerGrown = false;
     isHiddenListResizeDrag = true;
@@ -695,10 +692,17 @@
     document.body.style.cursor = 'row-resize';
     function onMove(moveEv) {
       if (pointerOutsideSidebar(moveEv)) { onUp(); return; }
-      // Pulling up (clientY decreasing) increases hidden-list height. Floor of 0
-      // so the user can drag it down to a sliver; we only decide whether to
-      // collapse on release, never snatch it closed mid-drag.
-      const requested = startH + (startY - moveEv.clientY);
+      // Pulling up (clientY decreasing) is positive travel.
+      const delta = startY - moveEv.clientY;
+      if (!opened) {
+        // Closed and not yet opened this drag: ignore downward/neutral travel so
+        // it stays closed; the first upward pull opens it and grows from a sliver.
+        if (delta <= 0) return;
+        opened = true;
+        hl.classList.add('visible');
+        renderHiddenList();
+      }
+      const requested = startH + delta;
       if (requested >= 0) {
         if (pickerGrown) { applyPickerHeight(startPickerH); pickerGrown = false; }
         applyHiddenListHeight(requested, 0);
@@ -717,8 +721,9 @@
       foot.classList.remove('dragging');
       foot.classList.remove('resize-hot');
       document.body.style.cursor = '';
-      // Released essentially at home -> snap closed.
-      if (hl.offsetHeight <= HIDDEN_HOME_SNAP_PX) collapseHiddenList();
+      // Collapse on release only if it actually opened during this drag and is
+      // back at home. A drag that never opened (closed + pulled down) stays closed.
+      if (opened && hl.offsetHeight <= HIDDEN_HOME_SNAP_PX) collapseHiddenList();
     }
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
