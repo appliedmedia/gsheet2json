@@ -30,15 +30,19 @@ npm run push
 npx clasp version "v${PKG_VERSION}"
 npx clasp deploy --deploymentId "$DEPLOYMENT_ID" --versionNumber "$NEW_VER" --description "v${PKG_VERSION}"
 
+MARKET_URL="https://console.cloud.google.com/apis/api/appsmarket-component.googleapis.com/overview?project=am-gsheet2json"
 echo ""
-if [[ -n "${CURRENT_PUBLISHED_VER}" ]]; then
-  echo "⚠️  MANUAL STEP: bump 'Sheets Add-on Script Version *' from ${CURRENT_PUBLISHED_VER} to ${NEW_VER} at:"
-else
-  echo "⚠️  MANUAL STEP: bump 'Sheets Add-on Script Version *' to ${NEW_VER} at:"
-fi
-echo "   https://console.cloud.google.com/apis/api/appsmarket-component.googleapis.com/overview?project=am-gsheet2json"
-echo -n "https://console.cloud.google.com/apis/api/appsmarket-component.googleapis.com/overview?project=am-gsheet2json" | pbcopy
-echo "   (URL copied to clipboard)"
-echo "   Or have Claude do it: scripts/browser-actor-prompt-marketplace-bump.md (NEW_VER=${NEW_VER})"
+echo "=================================================================="
+echo "FINAL STEP (no API for this field; it must be set in the Console GUI):"
+echo "  URL   : ${MARKET_URL}"
+echo "  TAB   : App Configuration"
+echo "  FIELD : 'Sheets Add-on Script Version' (under the checked 'Sheets add-on')"
+echo "  SET   : from ${CURRENT_PUBLISHED_VER:-?} to ${NEW_VER}"
+echo "  THEN  : click [Save Draft], reload the page, confirm it shows ${NEW_VER}"
+echo ""
+echo "claude-in-chrome, now do: scripts/browser-actor-prompt-marketplace-bump.md and set 'Sheets Add-on Script Version' to ${NEW_VER}"
+echo "=================================================================="
+echo -n "${MARKET_URL}" | pbcopy
+echo "(URL copied to clipboard)"
 
 # end scripts/deploy.sh
