@@ -54,6 +54,6 @@
     <rect x="85" y="104" width="16" height="6" rx="3" fill="url(#line-grad)" opacity="0.5"/>
     <rect x="85" y="114" width="10" height="6" rx="3" fill="url(#line-grad)" opacity="0.4"/>
     <text x="114" y="116" font-family="monospace" font-weight="bold" font-size="32" fill="rgba(255,255,255,0.25)" text-anchor="middle">}</text>
-    <text x="10" y="119.5" font-family="Nunito, Arial Rounded MT Bold, Helvetica Rounded, Arial, sans-serif" font-weight="900" font-size="32" fill="white" stroke="white" stroke-width="0.3" paint-order="stroke fill"><tspan>g</tspan><tspan dx="-1">2</tspan><tspan dx="-0.25">j</tspan></text>
+    <text x="10" y="119.5" font-family="Nunito, Arial Rounded MT Bold, Helvetica Rounded, Arial, sans-serif" font-weight="900" font-size="32" fill="#0a5c2f" stroke="#0a5c2f" stroke-width="0.7" paint-order="stroke fill"><tspan>g</tspan><tspan dx="-1">2</tspan><tspan dx="-0.25">j</tspan></text>
   </g>
 </svg>
